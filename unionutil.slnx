@@ -3,4 +3,7 @@
     <Project Path="src/UnionUtil.Meta/UnionUtil.Meta.csproj" />
     <Project Path="src/UnionUtil/UnionUtil.csproj" />
   </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/MustCompile/MustCompile.csproj" />
+  </Folder>
 </Solution>

@@ -25,8 +25,7 @@ public sealed class Generator : IIncrementalGenerator {
       id: "UnionUtil",
       title: "UnionUtil error",
       messageFormat: "{0}",
-      category: "Usage",
-      defaultSeverity: DiagnosticSeverity.Error,
+      category: "Usage", defaultSeverity: DiagnosticSeverity.Error,
       isEnabledByDefault: true
    );
    static (Ok? ok, Problem[] err) Transform(GeneratorAttributeSyntaxContext ctx, CancellationToken token) {
@@ -68,12 +67,23 @@ public sealed class Generator : IIncrementalGenerator {
                { IsUnmanagedType: true } => Kind.Unmanaged,
                { IsValueType: true } => Kind.Value,
                { IsReferenceType: true } => Kind.Reference,
+               { TypeKind: TypeKind.Interface } => Kind.Interface,
+               { IsAbstract: true } => Kind.Interface,
                _ => default,
             };
+            if (x is INamedTypeSymbol named) {
+               INamedTypeSymbol? @base = symbol;
+               while ((@base = @base.BaseType) != null) {
+                  if (SymbolEqualityComparer.Default.Equals(@base, named)) {
+                     kind = Kind.Interface;
+                     break;
+                  }
+               }
+            }
             name = x.ToDisplayString(Format);
          }
          var strategy = kind switch {
-            Kind.Reference => Strategy.Object,
+            Kind.Reference or Kind.Interface => Strategy.Object,
             Kind.Unmanaged => Strategy.Overlap,
             Kind.Value => boxStructs ? Strategy.Object : Strategy.Sequential,
             Kind.Generic => boxGenerics ? Strategy.Object : Strategy.Sequential,
@@ -115,6 +125,9 @@ public sealed class Generator : IIncrementalGenerator {
       if (ok!.Name.Namespace is string ns) {
          sb.AppendLine($"namespace {ns};");
       }
+      sb.AppendLine("#if NET11_0_OR_GREATER");
+      sb.AppendLine($"[{compilerServices}.Union]");
+      sb.AppendLine("#endif");
       sb.Append("partial ");
       string ro;
       switch (ok.Kind) {
@@ -129,7 +142,11 @@ public sealed class Generator : IIncrementalGenerator {
          default:
             throw new InvalidOperationException();
       }
-      sb.Append(ok.Name.Type).AppendGenerics(ok.Name).Append(" {").AppendLine();
+      sb.AppendLine(ok.Name.GenericName());
+      sb.AppendLine("#if NET11_0_OR_GREATER");
+      sb.AppendLine($"  : {compilerServices}.IUnion");
+      sb.AppendLine("#endif");
+      sb.AppendLine("{");
       var args = ok.TypeArgs.args;
       var vis = ok.Visibility;
       var mut = ok.Mutable ? " " : " readonly";
@@ -145,7 +162,9 @@ public sealed class Generator : IIncrementalGenerator {
          sb.AppendLine($"    {assign}");
          sb.AppendLine($"    {indexField} = {arg.index};");
          sb.AppendLine("  }");
-         sb.AppendLine($"  public static implicit operator {ok.Name.GenericName()}({arg.type} v) => new(v);");
+         if (arg.kind is not Kind.Interface) {
+            sb.AppendLine($"  public static implicit operator {ok.Name.GenericName()}({arg.type} v) => new(v);");
+         }
       }
       void writeTryGetValue(Arg arg, string assign) {
          sb.AppendLine($"  public{ro} bool TryGetValue(out {arg.type} v) {{");
@@ -225,7 +244,7 @@ public sealed class Generator : IIncrementalGenerator {
 sealed record Problem(Location Location, string Message);
 sealed record Ok(Args TypeArgs, Name Name, SyntaxKind Kind, bool Mutable, string Visibility);
 enum Strategy { Object, Sequential, Overlap };
-enum Kind : byte { Unmanaged, Generic, Reference, Value };
+enum Kind : byte { Unmanaged, Generic, Reference, Value, Interface };
 readonly struct Arg(int index, string name, Kind kind, Strategy strategy) : IEquatable<Arg> {
    public readonly int index = index;
    public readonly string type = name;
