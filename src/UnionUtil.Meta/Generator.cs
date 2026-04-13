@@ -64,14 +64,14 @@ public sealed class Generator : IIncrementalGenerator {
             name = tps.Name;
          } else {
             kind = x switch {
+               { TypeKind: TypeKind.Interface } => Kind.Interface,
+               { IsAbstract: true } => Kind.Interface,
                { IsUnmanagedType: true } => Kind.Unmanaged,
                { IsValueType: true } => Kind.Value,
                { IsReferenceType: true } => Kind.Reference,
-               { TypeKind: TypeKind.Interface } => Kind.Interface,
-               { IsAbstract: true } => Kind.Interface,
                _ => default,
             };
-            if (x is INamedTypeSymbol named) {
+            if (x is INamedTypeSymbol {IsReferenceType: true} named) {
                INamedTypeSymbol? @base = symbol;
                while ((@base = @base.BaseType) != null) {
                   if (SymbolEqualityComparer.Default.Equals(@base, named)) {
@@ -91,15 +91,17 @@ public sealed class Generator : IIncrementalGenerator {
          };
          args[i] = new(index, name, kind, strategy);
       }
+      var ns = symbol.ContainingNamespace;
       var transformed = new Ok(
          TypeArgs: new(args: args),
          Name: new(
-            Namespace: symbol.ContainingNamespace?.ToDisplayString(),
+            Namespace: ns.IsGlobalNamespace ? null : ns.ToDisplayString(),
             Type: symbol.Name,
             Params: [.. symbol.TypeParameters.Select(e => e.Name)]
          ),
          Kind: ctx.TargetNode.Kind(),
          Mutable: getNamed<bool?>("Mutable") ?? false,
+         Nullable: getNamed<bool?>("Nullable") ?? false,
          Visibility: getNamed<int?>("FieldVisibility") switch {
             1 => "internal",
             2 => "public",
@@ -125,9 +127,6 @@ public sealed class Generator : IIncrementalGenerator {
       if (ok!.Name.Namespace is string ns) {
          sb.AppendLine($"namespace {ns};");
       }
-      sb.AppendLine("#if NET11_0_OR_GREATER");
-      sb.AppendLine($"[{compilerServices}.Union]");
-      sb.AppendLine("#endif");
       sb.Append("partial ");
       string ro;
       switch (ok.Kind) {
@@ -142,11 +141,7 @@ public sealed class Generator : IIncrementalGenerator {
          default:
             throw new InvalidOperationException();
       }
-      sb.AppendLine(ok.Name.GenericName());
-      sb.AppendLine("#if NET11_0_OR_GREATER");
-      sb.AppendLine($"  : {compilerServices}.IUnion");
-      sb.AppendLine("#endif");
-      sb.AppendLine("{");
+      sb.Append(ok.Name.GenericName()).AppendLine("{");
       var args = ok.TypeArgs.args;
       var vis = ok.Visibility;
       var mut = ok.Mutable ? " " : " readonly";
@@ -231,18 +226,22 @@ public sealed class Generator : IIncrementalGenerator {
          }
       }
       sb.AppendLine($"  {vis}{mut} byte {indexField};");
+      var obj = ok.Nullable ? "object?" : "object";
       sb.AppendLine($"  public object? Value => {indexField} switch {{");
       foreach (var e in getters) sb.AppendLine($"    {e.Item1} => {e.Item2},");
-      sb.AppendLine($"    _ => null,");
+      if (ok.Nullable) sb.AppendLine($"    _ => null,");
+      else sb.AppendLine($"    _ => throw new InvalidOperationException($\"type index was {{{indexField}}}\")");
       sb.AppendLine("  };");
-      sb.AppendLine($"  public bool HasValue => {indexField} != 0;");
+      if (ok.Nullable) {
+         sb.AppendLine($"  public bool HasValue => {indexField} != 0;");
+      }
       sb.Append('}');
       ctx.AddSource(ok.Name.HintName(), sb.ToString());
    }
 
 }
 sealed record Problem(Location Location, string Message);
-sealed record Ok(Args TypeArgs, Name Name, SyntaxKind Kind, bool Mutable, string Visibility);
+sealed record Ok(Args TypeArgs, Name Name, SyntaxKind Kind, bool Mutable, string Visibility, bool Nullable);
 enum Strategy { Object, Sequential, Overlap };
 enum Kind : byte { Unmanaged, Generic, Reference, Value, Interface };
 readonly struct Arg(int index, string name, Kind kind, Strategy strategy) : IEquatable<Arg> {

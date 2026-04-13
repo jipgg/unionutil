@@ -16,6 +16,7 @@ public sealed class UnionImplAttribute : Attribute {
    public bool BoxGenerics { get; init; }
    public bool BoxManagedStructs { get; init; }
    public bool Mutable { get; init; }
+   public bool Nullable { get; init; }
    public Visibility FieldVisibility { get; init; }
 }
 public interface UnionTypes<T1>;
