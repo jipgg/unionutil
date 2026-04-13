@@ -141,7 +141,7 @@ public sealed class Generator : IIncrementalGenerator {
          default:
             throw new InvalidOperationException();
       }
-      sb.Append(ok.Name.GenericName()).AppendLine("{");
+      sb.Append(ok.Name.GenericName()).AppendLine(" {");
       var args = ok.TypeArgs.args;
       var vis = ok.Visibility;
       var mut = ok.Mutable ? " " : " readonly";
