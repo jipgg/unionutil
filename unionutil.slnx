@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/UnionUtil.Meta/UnionUtil.Meta.csproj" />
+    <Project Path="src/UnionUtil/UnionUtil.csproj" />
+  </Folder>
+</Solution>
