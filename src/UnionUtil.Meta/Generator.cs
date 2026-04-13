@@ -227,8 +227,8 @@ public sealed class Generator : IIncrementalGenerator {
       }
       sb.AppendLine($"  {vis}{mut} byte {indexField};");
       var obj = ok.Nullable ? "object?" : "object";
-      sb.AppendLine($"  public object? Value => {indexField} switch {{");
-      foreach (var e in getters) sb.AppendLine($"    {e.Item1} => {e.Item2},");
+      sb.AppendLine($"  public {obj} Value => {indexField} switch {{");
+      foreach (var e in getters) sb.AppendLine($"    {e.Item1} => {e.Item2}!,");
       if (ok.Nullable) sb.AppendLine($"    _ => null,");
       else sb.AppendLine($"    _ => throw new InvalidOperationException($\"type index was {{{indexField}}}\")");
       sb.AppendLine("  };");

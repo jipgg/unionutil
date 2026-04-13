@@ -51,5 +51,9 @@ static class Test {
    static void Block() {
       SealedClass x = 0.0f;
       Result<int, Exception> res = new InvalidOperationException();
+      Global g = 1;
+      if (g.HasValue) {
+         var c = g.Value;
+      }
    }
 }
