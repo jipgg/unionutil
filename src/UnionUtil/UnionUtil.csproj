@@ -12,6 +12,7 @@
      <Version>0.0.0</Version>
      <Authors>jipg</Authors>
      <PackageLicenseExpression>MIT</PackageLicenseExpression>
+     <RepositoryUrl>https://github.com/jipgg/unionutil</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
      <None Include="../.,/../../README.md" Pack="true" PackagePath="/" />
