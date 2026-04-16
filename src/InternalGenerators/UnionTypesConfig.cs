@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Collections.Immutable;
 using System.Diagnostics;
-namespace UnionUtil;
+namespace UnionUtil.Internal;
 
 [Generator(LanguageNames.CSharp)]
 public sealed class UnionTypesConfig : IIncrementalGenerator {
@@ -48,24 +48,19 @@ public sealed class UnionTypesConfig : IIncrementalGenerator {
          sb.AppendLine($"namespace {ns};");
       }
       var typeParams = new StringBuilder(typeParamsLength);
-      var ctorParams = new StringBuilder($"string {T} = {T},".Length * ok.Arity + 2);
       for (int n = 1; n <= ok.Arity; ++n) {
          typeParams.Append('<');
-         ctorParams.Append('(');
          for (int i = 1; i <= n; ++i) {
             typeParams.Append($"{T}{i},");
-            ctorParams.Append($"string case{i} = \"Case{i}\",");
          }
          typeParams[typeParams.Length - 1] = '>';
-         ctorParams[ctorParams.Length - 1] = ')';
          sb.AppendLine($"public interface I{ok.Name}{typeParams};"); ;
          if (ok.SkipAttributes) goto next;
          const string system = "global::System";
          const string attributeUsage = $"[{system}.AttributeUsage({system}.AttributeTargets.Struct | {system}.AttributeTargets.Class, AllowMultiple = false)]";
          sb.AppendLine(attributeUsage);
-         sb.AppendLine($"public sealed class {ok.Name}Attribute{typeParams}{ctorParams} : {system}.Attribute;");
+         sb.AppendLine($"public sealed class {ok.Name}Attribute{typeParams} : {system}.Attribute;");
       next:
-         ctorParams.Clear();
          typeParams.Clear();
          continue;
       }

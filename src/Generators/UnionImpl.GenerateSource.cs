@@ -9,13 +9,18 @@ partial class UnionImpl {
    public const string OverlappedType = "Overlapped";
    public const string IndexField = "_index";
    public const string CodeAnalysis = "global::System.Diagnostics.CodeAnalysis";
-   public const string UnscopedRef = $"{CodeAnalysis}.UnscopedRef";
    public const string InteropServices = "global::System.Runtime.InteropServices";
    public const string InvalidOperationException = "global::System.InvalidOperationException";
    public const string UnionUtil = "global::UnionUtil";
-   public const string GenericHelpers = $"{UnionUtil}.GenericHelpers";
 
-   static string FieldName(in Type e) {
+   static class GenericHelpers {
+      const string prefix = $"global::UnionUtil.GenericHelpers";
+      public static string Box(string type, string arg) => $"{prefix}.Box<{type}>({arg})";
+      public static string Ref(string type, string arg) => $"{prefix}.Ref<{type}>(ref {arg})";
+      public static string Get(string type, string arg) => $"{prefix}.Get<{type}>({arg})";
+   }
+
+   static string FieldName(in TypeArg e) {
       return $"_{e.index}";
    }
    static void GenerateSource(SourceProductionContext ctx, (Resolved?, Problem[]) result) {
@@ -50,13 +55,13 @@ partial class UnionImpl {
             throw new InvalidOperationException();
       }
       sb.Append(ok.Name.GenericName()).AppendLine(" {");
-      var entries = ok.Types.entries;
+      var entries = ok.TypeArgs.entries;
       var visibility = ok.Visibility;
       var readonlyFieldMod = ok.Mutable ? " " : " readonly";
       var lref = $"{(ok.Mutable ? "ref " : " ")}";
-      // string readonlyMethodMod = ok.Kind is SyntaxKind.StructDeclaration && !ok.Mutable ? " readonly" : " ";
-      (int, string)[] getters = [];
-      void writeConstructor(in Type arg, string assign) {
+      (int, string)[] getExprs = [];
+      (int, string)[] clearExprs = [];
+      void writeConstructor(in TypeArg arg, string assign) {
          sb.AppendLine($$"""
             [{{AggressiveInlining}}]
             public {{ok.Name.Type}}({{arg.type}} v) {
@@ -69,7 +74,7 @@ partial class UnionImpl {
             public static implicit operator {{ok.Name.GenericName()}}({{arg.type}} v) => new(v);
          """);
       }
-      void writeTryGetValue(in Type arg, string assign) {
+      void writeTryGetValue(in TypeArg arg, string assign) {
          sb.AppendLine($$"""
             [{{AggressiveInlining}}]
             public{{ro}} bool TryGetValue(out {{arg.type}} v) {
@@ -83,136 +88,161 @@ partial class UnionImpl {
             }
          """);
       }
-      void writeSetValue(in Type arg, string assign) {
-         if (ok.WithSetValue is false) return;
+      void writeSetValue(in TypeArg arg, string assign) {
+         if (ok.Mutable is false) return;
          sb.AppendLine($$"""
             [{{AggressiveInlining}}]
             public void SetValue({{arg.type}} v) {
-               {{assign}}
+               if ({{IndexField}} is {{arg.index}}) {
+                  {{assign}} = v;
+                  return;
+               }
+               ClearValue();
+               {{assign}} = v;
                {{IndexField}} = {{arg.index}};
             }
          """);
       }
-      void writeProperties(in Type e, string returnExpr) {
-         // string propertyType = ok.Mutable ? $" ref {e.type}" : $"{readonlyMethodMod} {e.type}";
-         string propertyType = ok.Mutable ? $" ref {e.type}" : $" {e.type}";
-         // string propertyType = $" {e.type}";
-         if (ok.Mutable) sb.AppendLine($"""
-            [{UnscopedRef}]
-         """);
-         // var setter = ok.Mutable ? $$"""
-         //
-         //       set {
-         //          if ({{IndexField}} is {{e.index}}) {
-         //             {{returnExpr}} = value;
-         //          } else {
-         //             SetValue(value);
-         //          }
-         //       }
-         // """ : "\n";
+      void writeProperties(in TypeArg e, string refExpr) {
+         string propertyType = $" {e.type}";
+         var setter = ok.Mutable ? $$"""
+               [{{AggressiveInlining}}]
+               set => SetValue(value);
+         """ : "\n";
          sb.AppendLine($$"""
-            public{{propertyType}} @{{ok.Labels[e]}} {
+            public {{e.type}} @{{ok.Tagged[e]}} {
                [{{AggressiveInlining}}]
               {{readonlyMethodMod}} get {
-                  if ({{IndexField}} != {{e.index}}) throw new {{InvalidOperationException}}($"type index is {{{IndexField}}} ({{ok.Labels[e]}}).");
-                  {{returnExpr}};
+                  if ({{IndexField}} != {{e.index}}) throw new {{InvalidOperationException}}($"type index is {{{IndexField}}} ({{ok.Tagged[e]}}).");
+                  return {{refExpr}};
                }
+               {{setter}}
             }
-            public{{readonlyMethodMod}} bool Is{{ok.Labels[e]}} {
-               [{{AggressiveInlining}}]
-               get => {{IndexField}} == {{e.index}};
-            } 
          """);
       }
-      Type[] toOverlap = [.. entries.Where(static e => e.strategy == Strategy.Overlap)];
+      TypeArg[] toOverlap = [.. entries.Where(static e => e.strategy == Strategy.Overlap)];
       if (toOverlap.Length > 0) {
          sb.AppendLine($$"""
             [{{InteropServices}}.StructLayout({{InteropServices}}.LayoutKind.Explicit)]
             {{visibility}} struct {{OverlappedType}} {
          """);
-         var fieldVis = visibility is "private" ? "internal" : visibility;
+         var fieldVisibility = visibility is "private" ? "internal" : visibility;
          foreach (var e in toOverlap) sb.AppendLine($"""
                [{InteropServices}.FieldOffset(0)]
-               {fieldVis} {e.type} {FieldName(e)};
+               {fieldVisibility} {e.type} {FieldName(e)};
          """);
          sb.AppendLine($$"""
             }
             {{visibility}}{{readonlyFieldMod}} {{OverlappedType}} {{OverlappedField}} = default;
          """);
          foreach (var e in toOverlap) {
-            getters = [.. getters, (e.index, $"{OverlappedField}.{FieldName(e)}")];
+            getExprs = [.. getExprs, (e.index, $"{OverlappedField}.{FieldName(e)}")];
             writeConstructor(e, $"{OverlappedField} = new() {{{FieldName(e)} = v}};");
             writeTryGetValue(e, $"v = {OverlappedField}.{FieldName(e)};");
-            if (ok.Mutable) writeSetValue(e, $"{OverlappedField}.{FieldName(e)} = v;");
-            if (ok.Labels.Enabled) {
-               var returnExpr = ok.Mutable
-                  ? $"return ref {OverlappedField}.{FieldName((e))}"
-                  : $"return {OverlappedField}.{FieldName(e)}";
-               writeProperties(e, returnExpr);
+            writeSetValue(e, $"{OverlappedField}.{FieldName(e)}");
+            if (ok.Tagged.Enabled) {
+               writeProperties(e, $"{OverlappedField}.{FieldName(e)}");
             }
          }
       }
-      Type[] toBox = [.. entries.Where(static e => e.strategy is Strategy.Box)];
+      TypeArg[] toBox = [.. entries.Where(static e => e.strategy is Strategy.Box)];
       if (toBox.Length > 0) {
          sb.AppendLine($"  {visibility}{readonlyFieldMod} object? {ObjectField} = default;");
          foreach (var e in toBox) {
             if (e.kind is Kind.Generic && e.strategy is Strategy.Box) {
-               writeConstructor(e, $"{ObjectField} = {GenericHelpers}.Box<{e.type}>(v)");
+               writeConstructor(e, $"{ObjectField} = {GenericHelpers.Box(e.type, "v")}");
             } else writeConstructor(e, $"{ObjectField} = v;");
             var get = e.kind switch {
                Kind.Reference or Kind.Interface => $"{Unsafe}.As<{e.type}>({ObjectField}!)",
                Kind.Value or Kind.Unmanaged => $"{Unsafe}.Unbox<{e.type}>({ObjectField}!)",
-               _ => $"{GenericHelpers}.Get<{e.type}>({ObjectField})",
+               _ => GenericHelpers.Get(e.type, ObjectField),
             };
-            getters = [.. getters, (e.index, ObjectField)];
+            getExprs = [.. getExprs, (e.index, ObjectField)];
             writeTryGetValue(e, $"v = {get};");
-            if (ok.Mutable) writeSetValue(e, $"{ObjectField} = v;");
             var T = e.type;
-            string returnExpr;
-            if (ok.Mutable) {
-               returnExpr = e.kind switch {
-                  Kind.Interface or Kind.Reference => $"return ref {Unsafe}.As<{T},{T}>(ref {ObjectField}!)",
-                  Kind.Value or Kind.Unmanaged => $"return ref {Unsafe}.Unbox<{T}>({ObjectField}!)",
-                  _ => $"return ref {GenericHelpers}.Ref<{T}>(ref {ObjectField})",
-                  // _ => $"return ref {Unsafe}.As<object?,{UnionUtil}.GenericBox<{T}>>(ref {ObjectField}).Item",
-                  // _ => $"return ref global::UnionUtil.UnionHelpers.UnboxAny<{T}>(ref {ObjectField}!)",
-               };
-            } else {
-               returnExpr = e.kind switch {
-                  Kind.Interface or Kind.Reference => $"return {Unsafe}.As<{T}>({ObjectField})!",
-                  Kind.Value or Kind.Unmanaged => $"return {ObjectField}.Unbox<{T}>({ObjectField}!)",
-                  _ => $"return {GenericHelpers}.Get<{T}>({ObjectField})",
-               };
-            }
-            if (ok.Labels.Enabled) {
-               writeProperties(e, returnExpr);
+            string refExpr;
+            refExpr = e.kind switch {
+               Kind.Interface or Kind.Reference => $"{Unsafe}.As<object?,{T}>(ref {ObjectField}!)",
+               Kind.Value or Kind.Unmanaged => $"{Unsafe}.Unbox<{T}>({ObjectField}!)",
+               _ => $"{GenericHelpers.Ref(T, ObjectField)}",
+            };
+            writeSetValue(e, refExpr);
+            clearExprs = [.. clearExprs, (e.index, $"{ObjectField} = null")];
+            if (ok.Tagged.Enabled) {
+               writeProperties(e, refExpr);
             }
          }
       }
-      Type[] sequential = [.. entries.Where(static e => e.strategy is Strategy.Sequential)];
+      TypeArg[] sequential = [.. entries.Where(static e => e.strategy is Strategy.Sequential)];
       if (sequential.Length > 0) {
          foreach (var e in sequential) {
             var holder = FieldName(e);
             sb.AppendLine($"  {visibility}{readonlyFieldMod} {e.type} {holder} = default!;");
-            getters = [.. getters, (e.index, holder)];
+            getExprs = [.. getExprs, (e.index, holder)];
             writeConstructor(e, $"{holder} = v;");
             writeTryGetValue(e, $"v = {holder};");
-            if (ok.Mutable) writeSetValue(e, $"{holder} = v;");
-            if (ok.Labels.Enabled) {
-               var returnExpr = ok.Mutable ? $"return ref {holder}" : $"return {holder}";
-               writeProperties(e, returnExpr);
+            if (ok.Mutable) {
+               writeSetValue(e, holder);
+               clearExprs = [.. clearExprs, (e.index, $"{holder} = default!")];
+            }
+            if (ok.Tagged.Enabled) {
+               writeProperties(e, holder);
             }
          }
       }
       sb.AppendLine($"  {visibility}{readonlyFieldMod} byte {IndexField};");
       var obj = ok.Nullable ? "object?" : "object";
       sb.AppendLine($"  public {obj} Value => {IndexField} switch {{");
-      foreach (var e in getters) sb.AppendLine($"    {e.Item1} => {e.Item2}!,");
-      if (ok.Nullable) sb.AppendLine($"    _ => null,");
-      else sb.AppendLine($"    _ => throw new global::System.InvalidOperationException($\"type index was {{{IndexField}}}\")");
+      foreach (var e in getExprs) sb.AppendLine($"    {e.Item1} => {e.Item2}!,");
+      if (ok.Nullable) sb.AppendLine($"    0 => null,");
+      sb.AppendLine($"    _ => throw new global::System.InvalidOperationException($\"type index was {{{IndexField}}}\")");
       sb.AppendLine("  };");
       if (ok.Nullable) {
          sb.AppendLine($"  public bool HasValue => {IndexField} != 0;");
+      }
+      if (ok.Mutable) {
+         sb.AppendLine($$"""
+            [{{AggressiveInlining}}]
+            public void ClearValue() {
+         """);
+         if (clearExprs.Length is 0) {
+            sb.AppendLine("}");
+            goto clear_value_done;
+         }
+         sb.AppendLine($$"""
+               switch ({{IndexField}}) {
+         """);
+         foreach (var e in clearExprs) sb.AppendLine($"""
+                  case {e.Item1}:
+                     {e.Item2};
+                     break;
+         """);
+         sb.AppendLine("""
+               }
+            }
+         """);
+      }
+   clear_value_done:
+      if (ok.Tagged.Enum is not null) {
+         var tag = ok.Tagged.Enum;
+         if (ok.Nullable) tag += "?";
+         sb.AppendLine($$"""
+         public {{tag}} {{ok.Tagged.Name}} {
+            [{{AggressiveInlining}}]
+           {{readonlyMethodMod}} get => {{IndexField}} switch {
+      """);
+         foreach (var e in entries) sb.AppendLine($$"""
+               {{e.index}} => {{ok.Tagged.Enum}}.{{ok.Tagged[e]}},
+      """);
+         if (ok.Nullable) sb.AppendLine($"""
+               0 => null,
+      """);
+         var genericName = ok.Name.GenericName();
+         sb.AppendLine($$"""
+               _ => throw new {{InvalidOperationException}}("invalid tag " + {{IndexField}}.ToString()),
+            };
+         }
+      """);
       }
       sb.Append('}');
       ctx.AddSource(ok.Name.HintName(), sb.ToString());

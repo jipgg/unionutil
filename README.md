@@ -8,7 +8,6 @@ Add `[UnionImpl]` to a partial class or struct implementing `UnionTypes<...>` wi
 ```cs
 using UnionUtil;
 
-
 [UnionImpl(
     BoxGenerics = false, // unconstrained generic arguments
     BoxManagedStructs = false,  // default, will store them as fields sequentially

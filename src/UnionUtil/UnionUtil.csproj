@@ -16,21 +16,12 @@
   </PropertyGroup>
   <ItemGroup>
      <None Include="../.,/../../README.md" Pack="true" PackagePath="/" />
-     <ProjectReference
-        Include="..\generators\generators.csproj" 
-        OutputItemType="Analyzer"
-        ReferenceOutputAssembly="false"
-      />
-     <ProjectReference
-        Include="..\internal_generators\internal_generators.csproj" 
-        OutputItemType="Analyzer"
-        ReferenceOutputAssembly="false"
-      />
-     <Content
-        Include="..\generators\bin\$(Configuration)\netstandard2.0\generators.dll"
-        Pack="true"
-        PackagePath="analyzers/dotnet/cs/"
-      />
+     <ProjectReference Include="..\Generators\UnionUtil.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+     <Content Include="..\Generators\bin\$(Configuration)\netstandard2.0\UnionUtil.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs/" />
+     <ProjectReference Include="..\InternalGenerators\UnionUtil.Internal.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\UnionUtil.Shared.csproj" />
   </ItemGroup>
 
 </Project>

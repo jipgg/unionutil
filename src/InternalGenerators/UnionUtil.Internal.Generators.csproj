@@ -15,5 +15,8 @@
     <PrivateAssets>all</PrivateAssets>
   </PackageReference>
 </ItemGroup>
+<ItemGroup>
+  <ProjectReference Include="..\Shared\UnionUtil.Shared.csproj" />
+</ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
 using UnionUtil;
 
 [UnionImpl(Nullable = true, ReadOnly = true)]
-readonly partial struct GlobalMustCompile: IUnionCases<int, float, double, nint, IEnumerable<object>>;
+readonly partial struct GlobalMustCompile: IUnion<int, float, double, nint, IEnumerable<object>>;

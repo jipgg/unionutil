@@ -1,8 +1,7 @@
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
-namespace UnionUtil;
 
-sealed record Problem(
+public sealed record Problem(
    Location Location,
    string Message,
    DiagnosticSeverity Severity = DiagnosticSeverity.Error

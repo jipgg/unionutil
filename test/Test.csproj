@@ -21,9 +21,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\unionutil\UnionUtil.csproj" />
+    <ProjectReference Include="..\src\UnionUtil\UnionUtil.csproj" />
      <ProjectReference
-        Include="..\src\generators\generators.csproj" 
+        Include="..\src\Generators\UnionUtil.Generators.csproj" 
         OutputItemType="Analyzer"
         ReferenceOutputAssembly="false"
       />

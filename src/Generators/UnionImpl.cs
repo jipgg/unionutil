@@ -17,29 +17,28 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
    enum Strategy { Box, Sequential, Overlap };
    enum Kind : byte { Unmanaged, Generic, Reference, Value, Interface };
    sealed record Resolved(
-      Types Types,
+      TypeArgs TypeArgs,
       Name Name,
       SyntaxKind Kind,
       bool Mutable,
       string Visibility,
       bool Nullable,
-      bool WithSetValue,
-      Labels Labels
+      Tagged Tagged
    );
-   readonly struct Type(int index, string name, Kind kind, Strategy strategy) : IEquatable<Type> {
+   readonly struct TypeArg(int index, string name, Kind kind, Strategy strategy) : IEquatable<TypeArg> {
       public readonly int index = index;
       public readonly string type = name;
       public readonly Kind kind = kind;
       public readonly Strategy strategy = strategy;
-      public bool Equals(Type other) => type == other.type && strategy == other.strategy;
+      public bool Equals(TypeArg other) => type == other.type && strategy == other.strategy;
    }
-   readonly record struct Labels(string[]? Cases, bool Enabled) {
+   readonly record struct Tagged(string? Enum, string? Name, string[]? Cases, bool Enabled) {
       public string this[int typeIndex] => Cases?[typeIndex - 1] ?? $"Case{typeIndex}";
-      public string this[in Type arg] => this[arg.index];
+      public string this[in TypeArg arg] => this[arg.index];
    }
-   readonly struct Types(Type[] entries) : IEquatable<Types> {
-      public readonly Type[] entries = entries;
-      public bool Equals(Types other) => entries.AsSpan().SequenceEqual(other.entries);
+   readonly struct TypeArgs(TypeArg[] entries) : IEquatable<TypeArgs> {
+      public readonly TypeArg[] entries = entries;
+      public bool Equals(TypeArgs other) => entries.AsSpan().SequenceEqual(other.entries);
    }
 
    readonly record struct Name(string? Namespace, string Type, string[] Params) {
@@ -94,11 +93,11 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
       }
       mutable = true;
    mutable_done:
-      const string unionTypesName = "UnionCases";
+      const string unionTypesName = "Union";
       var unionTypes = symbol.Interfaces
          .Where(e => e.Name is $"I{unionTypesName}")
          .FirstOrDefault();
-      Type[] resolvedTypes;
+      TypeArg[] resolvedTypeArgs;
       if (unionTypes is not null) goto resolve_union_types;
       unionTypes = symbol.GetAttributes()
          .Where(e => e.AttributeClass?.Name is $"{unionTypesName}Attribute")
@@ -106,12 +105,12 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
          .FirstOrDefault();
       if (unionTypes is null) {
          emitProblem($"Missing '{unionTypesName} interface to tag types");
-         resolvedTypes = [];
+         resolvedTypeArgs = [];
          goto skip_resolving_union_types;
       }
    resolve_union_types:
       var targs = unionTypes.TypeArguments;
-      resolvedTypes = new Type[targs.Length];
+      resolvedTypeArgs = new TypeArg[targs.Length];
       for (int i = 0; i < targs.Length; ++i) {
          int index = i + 1;
          var curr = targs[i];
@@ -156,37 +155,39 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
             Kind.Generic => boxGenerics ? Strategy.Box : Strategy.Sequential,
             _ => throw new InvalidOperationException(),
          };
-         resolvedTypes[i] = new(index, name, kind, strategy);
+         resolvedTypeArgs[i] = new(index, name, kind, strategy);
       }
    skip_resolving_union_types:
-      Labels labels = default;
-      if (attr.Named<bool?>("WithFieldAccessors") is not true) {
-         goto labels_done;
+      Tagged resolvedTaggeds = default;
+      var tagged = symbol.GetAttributes()
+         .Where(e => e.AttributeClass?.MetadataName is "TaggedAttribute`1")
+         .SingleOrDefault();
+      if (tagged is null) goto taggeds_done;
+      var tag = tagged.AttributeClass!.TypeArguments[0];
+      var members = tag.GetMembers()
+         .Where(e => e.Kind == SymbolKind.Field);
+      string[] taggeds = [.. members.Select(static e => e.Name)];
+      if (taggeds.Length != resolvedTypeArgs?.Length) {
+         emitProblem($"length of tag enum is not the same as length of cases");
+         goto taggeds_done;
       }
-      const string accessorNames = "FieldAccessorNames";
-      var (names, err) = attr.NamedArray<string>(accessorNames);
-      if (err != null) {
-         problems = [.. problems, err];
-      } else if (names is { } c && c.Length != resolvedTypes?.Length) {
-         emitProblem($"length of {accessorNames} does not match the arity of {unionTypesName}");
-      } else {
-         labels = new(names, true);
-      }
-   labels_done:
-      var ns = symbol.ContainingNamespace;
+      var tagName = (string)tagged.ConstructorArguments[0].Value!;
+      var tagEnum = tag.ToDisplayString(Format);
+      resolvedTaggeds = new(tagEnum, tagName, taggeds, true);
+   taggeds_done:
       Debug.Assert(mutable.HasValue);
+      var ns = symbol.ContainingNamespace;
       return (new Resolved(
-         Types: new(entries: resolvedTypes ?? throw new("resolvedTypes is null")),
+         TypeArgs: new(entries: resolvedTypeArgs ?? throw new("resolvedTypes is null")),
          Name: new(
             Namespace: ns.IsGlobalNamespace ? null : ns.ToDisplayString(),
             Type: symbol.Name,
             Params: [.. symbol.TypeParameters.Select(e => e.Name)]
          ),
          Kind: ctx.TargetNode.Kind(),
-         WithSetValue: attr.Named<bool?>("WithSetValueOverloads") ?? false,
          Mutable: mutable!.Value,
          Nullable: attr.Named<bool?>("Nullable") ?? false,
-         Labels: labels,
+         Tagged: resolvedTaggeds,
          Visibility: attr.Named<int?>("FieldVisibility") switch {
             1 => "internal",
             2 => "public",
