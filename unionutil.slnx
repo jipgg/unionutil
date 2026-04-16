@@ -1,9 +1,8 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/UnionUtil.Meta/UnionUtil.Meta.csproj" />
-    <Project Path="src/UnionUtil/UnionUtil.csproj" />
+    <Project Path="src/generators/generators.csproj" />
+    <Project Path="src/internal_generators/internal_generators.csproj" />
+    <Project Path="src/unionutil/UnionUtil.csproj" />
   </Folder>
-  <Folder Name="/test/">
-    <Project Path="test/MustCompile/MustCompile.csproj" />
-  </Folder>
+  <Project Path="test/test.csproj" />
 </Solution>

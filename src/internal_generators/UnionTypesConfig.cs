@@ -1,0 +1,78 @@
+using System.Runtime.CompilerServices;
+using System.Collections.Immutable;
+using System.Diagnostics;
+namespace UnionUtil;
+
+[Generator(LanguageNames.CSharp)]
+public sealed class UnionTypesConfig : IIncrementalGenerator {
+   public void Initialize(IncrementalGeneratorInitializationContext ctx) {
+      ctx.RegisterSourceOutput(
+         ctx.CompilationProvider.Select(Resolve),
+         GenerateSource
+      );
+   }
+   readonly record struct Resolved(
+      int Arity,
+      bool SkipAttributes,
+      string? Namespace,
+      string Name
+   );
+
+   static Resolved Resolve(Compilation compilation, CancellationToken token) {
+      var attr = compilation.Assembly.GetAttributes()
+         .Where(static e => e.AttributeClass is { } c
+            && c.Name is "UnionTypesConfigAttribute")
+         .FirstOrDefault();
+      if (attr is null) return default;
+
+      var arity = (int)attr.ConstructorArguments[0].Value!;
+      var @namespace = (string?)attr.ConstructorArguments[1].Value;
+      if (attr.ConstructorArguments[2].Value is not string name) {
+         throw new("name is null");
+      }
+      return new(arity, false, @namespace, name);
+   }
+
+   static bool Filter(SyntaxNode node, CancellationToken token) {
+      if (node is not AttributeListSyntax als) return false;
+      return als.Target?.Identifier.Kind() is SyntaxKind.AssemblyKeyword;
+   }
+
+   static void GenerateSource(SourceProductionContext ctx, Resolved ok) {
+      const string T = "TCase";
+      var typeParamsLength = ok.Arity * $"{T}X,".Length + 2;
+      var sb = new StringBuilder(1024);
+      sb.AppendLine("#nullable enable");
+      sb.AppendLine("#pragma warning disable CS9113");
+      if (ok.Namespace is string ns) {
+         sb.AppendLine($"namespace {ns};");
+      }
+      var typeParams = new StringBuilder(typeParamsLength);
+      var ctorParams = new StringBuilder($"string {T} = {T},".Length * ok.Arity + 2);
+      for (int n = 1; n <= ok.Arity; ++n) {
+         typeParams.Append('<');
+         ctorParams.Append('(');
+         for (int i = 1; i <= n; ++i) {
+            typeParams.Append($"{T}{i},");
+            ctorParams.Append($"string case{i} = \"Case{i}\",");
+         }
+         typeParams[typeParams.Length - 1] = '>';
+         ctorParams[ctorParams.Length - 1] = ')';
+         sb.AppendLine($"public interface I{ok.Name}{typeParams};"); ;
+         if (ok.SkipAttributes) goto next;
+         const string system = "global::System";
+         const string attributeUsage = $"[{system}.AttributeUsage({system}.AttributeTargets.Struct | {system}.AttributeTargets.Class, AllowMultiple = false)]";
+         sb.AppendLine(attributeUsage);
+         sb.AppendLine($"public sealed class {ok.Name}Attribute{typeParams}{ctorParams} : {system}.Attribute;");
+      next:
+         ctorParams.Clear();
+         typeParams.Clear();
+         continue;
+      }
+
+      var hintName = ok.Namespace != null
+         ? $"{ok.Namespace}.{ok.Name}"
+         : ok.Name;
+      ctx.AddSource($"{hintName}{{{ok.Arity}}}.g", sb.ToString());
+   }
+}
