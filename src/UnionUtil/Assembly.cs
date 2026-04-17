@@ -1,3 +1,3 @@
 using UnionUtil;
 
-[assembly: UnionTypesConfig(1024, nameof(UnionUtil), "Union")]
+[assembly: UnionTypesConfig(16, nameof(UnionUtil), "Union")]

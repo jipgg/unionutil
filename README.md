@@ -1,9 +1,9 @@
 # UnionUtil
 Source generator utilities for the upcoming `union`s language feature in C#15.
 
-> The nature of the project is quite informal at the moment with volatile changes being the norm. In the scenario where this does seem useful to more people that myself alone, i may add a stable api version.
-
-Perfectly usable in .NET10, but does not have support for the fancy switch expression for matching which is available in the .NET11 preview. In these scenarios id recommend using the `[Tagged<TEnum>]` attribute for generating named properties and using pattern matching in the switch expression to match over them (`{ Tag: Tag.X, X: var x }`).
+> The nature of the project is quite informal at the moment with volatile changes being the norm. In the scenario where this does seem useful to more people that myself alone, i may add a stable api version and add proper diagnostics, tests and analyzers.
+ 
+Perfectly usable in .NET10, but does not have support for the fancy switch expression for matching that is available in the .NET11 preview. In these scenarios id recommend using the `[Tagged<TEnum>]` attribute for generating named properties and using pattern matching in the switch expression to match over them (`{ Tag: Tag.X, X: var x }`).
 
 The currently proposed default implementation of `union` types will be `readonly struct(object, int)` to my understanding, meaning it'll box value types and generics. This is arguably the best ccompromise considering the runtime limitations, but may not always be what you want.
 
@@ -19,6 +19,22 @@ Unions will support custom, user supplied implementations, hence the reasoning f
 ## `where T: unmanaged`
 While legal for the compiler, Overlapping generic fields are not allowed by the runtime, even when constrained to unmanaged. Meaning `where T: unmanaged` will follow the same rules as `where T: struct` for the time being.
 Potential workaround would be an option to generate a small buffer optimization field with a user attributed fixed size, then store small values in there and otherwise do a boxing fallback. I'd have to look into finding an acceptable solution.
+# Installation
+```sh
+dotnet package add UnionUtil
+```
+or add it as a project refecence in your `.csproj`:
+```csproj
+  <ItemGroup>
+    <ProjectReference Include="dir\to\unionutil\src\UnionUtil\UnionUtil.csproj" />
+     <ProjectReference
+        Include="dir\to\unionutil\src\UnionUtil.Generators\UnionUtil.Generators.csproj" 
+        OutputItemType="Analyzer"
+        ReferenceOutputAssembly="false"
+      />
+  </ItemGroup>
+
+```
 # Usage Examples
 ```cs
 using UnionUtil;

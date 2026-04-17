@@ -9,13 +9,13 @@
 
      <IsPackable>true</IsPackable>
      <PackageId>UnionUtil</PackageId>
-     <Version>0.0.1</Version>
+     <Version>0.0.2</Version>
      <Authors>jipg</Authors>
      <PackageLicenseExpression>MIT</PackageLicenseExpression>
      <RepositoryUrl>https://github.com/jipgg/unionutil</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
-     <None Include="../../../../README.md" Pack="true" PackagePath="/" />
+     <None Include="../../README.md" Pack="true" PackagePath="/" />
      <ProjectReference Include="..\UnionUtil.Generators\UnionUtil.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
      <Content Include="..\UnionUtil.Generators\bin\$(Configuration)\netstandard2.0\UnionUtil.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs/" />
      <ProjectReference Include="..\UnionUtil.Internal.Generators\UnionUtil.Internal.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
