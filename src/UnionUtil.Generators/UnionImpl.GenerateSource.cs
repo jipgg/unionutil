@@ -14,7 +14,7 @@ partial class UnionImpl {
    public const string UnionUtil = "global::UnionUtil";
 
    static class GenericHelpers {
-      const string prefix = $"global::UnionUtil.GenericHelpers";
+      const string prefix = $"global::UnionUtil.OpenGenericHelpers";
       public static string Box(string type, string arg) => $"{prefix}.Box<{type}>({arg})";
       public static string Ref(string type, string arg) => $"{prefix}.Ref<{type}>(ref {arg})";
       public static string Get(string type, string arg) => $"{prefix}.Get<{type}>({arg})";

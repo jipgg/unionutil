@@ -1,8 +1,0 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <NoWarn>IDE0130</NoWarn>
-    <LangVersion>13</LangVersion>
-    <TargetFramework>netstandard2.0</TargetFramework>
-  </PropertyGroup>
-</Project>

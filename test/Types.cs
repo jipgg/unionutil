@@ -9,6 +9,7 @@ public enum Result { Ok, Err }
 [Tagged<Result>, UnionImpl(FieldVisibility = Visibility.Internal)]
 public partial struct Result<T, E> : IUnion<T, E> where E : Exception;
 
+
 [UnionImpl(FieldVisibility = Visibility.Internal)]
 [Tagged<Result>]
 public partial struct Result<T> : IUnion<T, Exception> {
@@ -44,4 +45,3 @@ public partial struct BoxedResult<T> : IUnion<T, Exception> {
       return Unsafe.As<BoxedResult<T, Exception>, BoxedResult<T>>(ref result);
    }
 }
-

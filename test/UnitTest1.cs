@@ -13,7 +13,6 @@ public enum MutableTag { Int, Double, Vector3 }
 [Union<int, double, Vector3>]
 partial struct MutableStruct;
 
-
 public enum Case { A, B, C, D, E, F, G }
 [Tagged<Case>("Case"), UnionImpl(
    FieldVisibility = Visibility.Internal

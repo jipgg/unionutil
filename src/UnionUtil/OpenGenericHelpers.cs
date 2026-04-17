@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
-namespace  UnionUtil;
+namespace UnionUtil;
 
-public static class GenericHelpers {
+public static class OpenGenericHelpers {
    sealed class Boxed<T>(T item) {
       public T Item = item;
    }

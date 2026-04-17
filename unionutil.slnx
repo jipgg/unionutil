@@ -1,15 +1,11 @@
 <Solution>
+  <Folder Name="/bench/">
+    <Project Path="bench/Bench.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/UnionUtil/UnionUtil.csproj" />
-  </Folder>
-  <Folder Name="/src/Generators/">
-    <Project Path="src/Generators/UnionUtil.Generators.csproj" />
-  </Folder>
-  <Folder Name="/src/InternalGenerators/">
-    <Project Path="src/InternalGenerators/UnionUtil.Internal.Generators.csproj" />
-  </Folder>
-  <Folder Name="/src/Shared/">
-    <Project Path="src/Shared/UnionUtil.Shared.csproj" />
+    <Project Path="src/UnionUtil.Generators/UnionUtil.Generators.csproj" />
+     <Project Path="src/UnionUtil.Internal.Generators/UnionUtil.Internal.Generators.csproj" />
   </Folder>
   <Project Path="test/Test.csproj" />
 </Solution>
