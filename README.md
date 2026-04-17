@@ -87,32 +87,4 @@ var str = result switch {
 ```
 # Benchmarks
 More proper benchmarks will come once C#15 unions are in a more fleshed out state.
-## InitAndSwitch `int, double, record(int, double)` (Construction + Specualtive desugared switch expression)
-[Source](./bench/InitAndSwitch.cs) for specifics.
-```
-
-BenchmarkDotNet v0.15.8, Linux EndeavourOS
-12th Gen Intel Core i5-1240P 0.40GHz, 1 CPU, 16 logical and 12 physical cores
-.NET SDK 10.0.104
-  [Host]         : .NET 10.0.4 (10.0.4, 42.42.42.42424), X64 RyuJIT x86-64-v3
-  .NET 10.0      : .NET 10.0.4 (10.0.4, 42.42.42.42424), X64 RyuJIT x86-64-v3
-  NativeAOT 10.0 : .NET 10.0.4, X64 NativeAOT x86-64-v3
-
-
-```
-| Method                         | Job            | Runtime        | Mean       | Error     | StdDev    | Median     | Gen0   | Allocated |
-|------------------------------- |--------------- |--------------- |-----------:|----------:|----------:|-----------:|-------:|----------:|
-| SpeculativeUnionImplementation | .NET 10.0      | .NET 10.0      |  7.2381 ns | 0.0466 ns | 0.0389 ns |  7.2236 ns | 0.0051 |      32 B |
-| ReadOnlyGeneratedSequential    | .NET 10.0      | .NET 10.0      |  0.0059 ns | 0.0132 ns | 0.0110 ns |  0.0000 ns |      - |         - |
-| GeneratedSequential            | .NET 10.0      | .NET 10.0      |  0.0031 ns | 0.0066 ns | 0.0058 ns |  0.0000 ns |      - |         - |
-| GeneratedBoxed                 | .NET 10.0      | .NET 10.0      | 11.6213 ns | 0.0561 ns | 0.0468 ns | 11.6093 ns | 0.0051 |      32 B |
-| GeneratedRawBoxed              | .NET 10.0      | .NET 10.0      |  7.1935 ns | 0.1327 ns | 0.1241 ns |  7.1621 ns | 0.0051 |      32 B |
-| GeneratedStatically            | .NET 10.0      | .NET 10.0      |  0.1163 ns | 0.0477 ns | 0.0446 ns |  0.1022 ns |      - |         - |
-| SpeculativeUnionImplementation | NativeAOT 10.0 | NativeAOT 10.0 |  1.2031 ns | 0.0256 ns | 0.0239 ns |  1.2007 ns |      - |         - |
-| ReadOnlyGeneratedSequential    | NativeAOT 10.0 | NativeAOT 10.0 |  0.0008 ns | 0.0031 ns | 0.0033 ns |  0.0000 ns |      - |         - |
-| GeneratedSequential            | NativeAOT 10.0 | NativeAOT 10.0 |  0.0989 ns | 0.0368 ns | 0.0361 ns |  0.1053 ns |      - |         - |
-| GeneratedBoxed                 | NativeAOT 10.0 | NativeAOT 10.0 | 20.8178 ns | 0.4415 ns | 0.9505 ns | 20.5148 ns | 0.0051 |      32 B |
-| GeneratedRawBoxed              | NativeAOT 10.0 | NativeAOT 10.0 |  5.7708 ns | 0.3616 ns | 1.0604 ns |  5.2420 ns | 0.0051 |      32 B |
-| GeneratedStatically            | NativeAOT 10.0 | NativeAOT 10.0 |  0.0162 ns | 0.0167 ns | 0.0440 ns |  0.0000 ns |      - |         - |
-
-> Most notable observation is that my [OpenGenericsHelpers](./src/UnionUtil/OpenGenericHelpers.cs) is noticably worse than i initially anticipated. I may be able to optimize this so read operation are near equivalent to `object` wrapping while still allowing to reuse the already allocated boxed structs in scenarios where they are possible. I'll likely simply go the object boxing approach for `readonly` generated types. 
+Benchmark reports can be found [here](./bench/reports/).

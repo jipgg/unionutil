@@ -6,3 +6,6 @@ namespace Test.MustCompile;
 )]
 sealed partial class SealedClass : IUnion<int, float, object, List<object>>;
 
+
+[UnionImpl(ReadOnly = true), Union<int, float>]
+partial struct ReadonlyStruct;
