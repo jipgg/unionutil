@@ -6,7 +6,7 @@
       <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<EnableAnalyzerReleaseTracking>true</EnableAnalyzerReleaseTracking>
       <ImplicitUsings>enable</ImplicitUsings>
-      <Packable>false</Packable>
+      <IsPackable>false</IsPackable>
       <Nullable>enable</Nullable>
       <NoWarn>IDE0130</NoWarn>
    </PropertyGroup>
