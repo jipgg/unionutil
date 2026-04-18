@@ -2,9 +2,22 @@
 [SimpleJob(RuntimeMoniker.Net10_0)]
 [SimpleJob(RuntimeMoniker.NativeAot10_0)]
 public class InitAndSwitch {
+   Something _something;
+
+   [GlobalSetup]
+   public void Setup() {
+      var random = Random.Shared;
+      _something = new(
+         random.Next(),
+         random.NextDouble(),
+         random.NextInt64(),
+         (ulong)random.NextInt64()
+      );
+   }
    [Benchmark(Description = "speculative union")]
    public int SpeculativeUnionImplementation() {
-      SpeculativeUnionImplementation<int, double, Something> @union = new Something(1, 2);
+      SpeculativeUnionImplementation<int, double, Something> @union = _something;
+
 
       if (!@union.HasValue) return 0;
       else if (@union.TryGetValue(out int i)) return i;
@@ -14,7 +27,7 @@ public class InitAndSwitch {
    }
    [Benchmark(Description = "generic,sequential")]
    public int GeneratedSequential() {
-      GeneratedSequential<int, double, Something> @union = new Something(1, 2);
+      GeneratedSequential<int, double, Something> @union = _something;
 
       if (!@union.HasValue) return 0;
       else if (@union.TryGetValue(out int i)) return i;
@@ -24,7 +37,7 @@ public class InitAndSwitch {
    }
    [Benchmark(Description = "generic,sequential,tagged")]
    public int GeneratedSequentialTagged() {
-      GenericTaggedSequential<int, double, Something> @union = new Something(1, 2);
+      GenericTaggedSequential<int, double, Something> @union = _something;
 
       return @union switch {
          { Tag: null } => 0,
@@ -36,7 +49,27 @@ public class InitAndSwitch {
    }
    [Benchmark(Description = "generic,boxed")]
    public int GeneratedBoxed() {
-      GeneratedBoxed<int, double, Something> @union = new Something(1, 2);
+      GeneratedBoxed<int, double, Something> @union = _something;
+
+      if (!@union.HasValue) return 0;
+      else if (@union.TryGetValue(out int i)) return i;
+      else if (@union.TryGetValue(out double d)) return (int)d;
+      else if (@union.TryGetValue(out Something s)) return (int)(s.Int + s.Double);
+      else throw new();
+   }
+   [Benchmark(Description = "generic,boxed,sbo32(fits)")]
+   public int GeneratedBoxedSbo16() {
+      GeneratedSbo32<int, double, Something> @union = _something;
+
+      if (!@union.HasValue) return 0;
+      else if (@union.TryGetValue(out int i)) return i;
+      else if (@union.TryGetValue(out double d)) return (int)d;
+      else if (@union.TryGetValue(out Something s)) return (int)(s.Int + s.Double);
+      else throw new();
+   }
+   [Benchmark(Description = "generic,boxed,sbo7(default)")]
+   public int GeneratedBoxedSbo7() {
+      GeneratedSbo7<int, double, Something> @union = _something;
 
       if (!@union.HasValue) return 0;
       else if (@union.TryGetValue(out int i)) return i;
@@ -46,7 +79,7 @@ public class InitAndSwitch {
    }
    [Benchmark(Description = "monomorphized")]
    public int GeneratedStatically() {
-      GeneratedStatically @union = new Something(1, 2);
+      GeneratedStatically @union = _something;
 
       if (!@union.HasValue) return 0;
       else if (@union.TryGetValue(out int i)) return i;
@@ -69,11 +102,12 @@ public partial struct GeneratedBoxed<T1, T2, T3> : IUnion<T1, T2, T3>;
 public partial struct GeneratedWhereClass<T1, T2, T3> : IUnion<T1, T2, T3>
 where T1 : class where T2 : class where T3 : class;
 
-[UnionImpl(Nullable = true), SmallBuffer(16)]
-public partial struct GeneratedSbo16<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable = true), SmallBuffer(8)]
-public partial struct GeneratedSbo8<T1, T2, T3> : IUnion<T1, T2, T3>;
+[UnionImpl(Nullable = true, BoxOpenGenerics = true), SmallBufferOptimized(32)]
+public partial struct GeneratedSbo32<T1, T2, T3> : IUnion<T1, T2, T3>;
+[UnionImpl(Nullable = true, BoxOpenGenerics = true), SmallBufferOptimized(7)]
+public partial struct GeneratedSbo7<T1, T2, T3> : IUnion<T1, T2, T3>;
 
+public readonly record struct Something(int Int, double Double, long Long, ulong Ulong);
 [UnionImpl(Nullable = true), Union<int, double, Something>]
 public partial struct GeneratedStatically;
 
@@ -108,7 +142,9 @@ public readonly struct SpeculativeUnionImplementation<T1, T2, T3> {
       [MethodImpl(AggressiveInlining)]
       get => _tag is 0;
    }
-   public bool TryGetValue(out T1 v) { if (_tag is 1) { v = (T1)_value!;
+   public bool TryGetValue(out T1 v) {
+      if (_tag is 1) {
+         v = (T1)_value!;
          return true;
       }
       v = default!;
@@ -135,5 +171,4 @@ public readonly struct SpeculativeUnionImplementation<T1, T2, T3> {
 public sealed class Box<T>(T item) where T : struct {
    public T Item = item;
 }
-public readonly record struct Something(int Int, double Double);
 

@@ -1,10 +1,16 @@
 using System.Runtime.CompilerServices;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Diagnostics.CodeAnalysis;
 namespace UnionUtil;
 
 using static MethodImplOptions;
 
+public interface ISmallBuffer {
+   abstract static int Size { get; }
+   [UnscopedRef]
+   ref byte Data { get; }
+}
 public static class OpenGenericHelpers {
    sealed class Boxed<T>(T item) {
       public T Item = item;
@@ -20,14 +26,11 @@ public static class OpenGenericHelpers {
       else return v;
    }
    [MethodImpl(AggressiveInlining)]
-   public unsafe static void Box<T>(Span<byte> sbo, ref object? obj, T v) {
+   public static void Box<T, TSbo>(ref TSbo sbo, ref object? obj, T v) where TSbo : ISmallBuffer, allows ref struct {
       if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>()) {
          var size = Unsafe.SizeOf<T>();
-         if (size <= sbo.Length) {
-            var copied = MemoryMarshal
-               .CreateSpan(ref Unsafe.As<T, byte>(ref v), size)
-               .TryCopyTo(sbo);
-            Debug.Assert(copied);
+         if (size <= TSbo.Size) {
+            Unsafe.WriteUnaligned(ref sbo.Data, v);
             return;
          }
          obj = new Boxed<T>(v);
@@ -49,10 +52,10 @@ public static class OpenGenericHelpers {
       }
    }
    [MethodImpl(AggressiveInlining)]
-   public static T Get<T>(ReadOnlySpan<byte> sbo, object? v) {
+   public static T Get<T, TSbo>(ref TSbo sbo, object? v) where TSbo : ISmallBuffer, allows ref struct {
       if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>()) {
-         if (Unsafe.SizeOf<T>() <= sbo.Length) {
-            return Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(sbo));
+         if (Unsafe.SizeOf<T>() <= TSbo.Size) {
+            return Unsafe.ReadUnaligned<T>(ref sbo.Data);
          }
          Debug.Assert(v is Boxed<T>);
          return Unsafe.As<Boxed<T>>(v).Item;
@@ -73,10 +76,10 @@ public static class OpenGenericHelpers {
       }
    }
    [MethodImpl(AggressiveInlining)]
-   public static ref T Ref<T>(ReadOnlySpan<byte> sbo, ref object? v) {
+   public static ref T Ref<T, TSbo>(ref TSbo sbo, ref object? v) where TSbo : ISmallBuffer, allows ref struct {
       if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>()) {
-         if (Unsafe.SizeOf<T>() <= sbo.Length) {
-            return ref Unsafe.As<byte, T>(ref MemoryMarshal.GetReference(sbo));
+         if (Unsafe.SizeOf<T>() <= TSbo.Size) {
+            return ref Unsafe.As<byte, T>(ref sbo.Data);
          }
          Debug.Assert(v is Boxed<T>);
          return ref Unsafe.As<Boxed<T>>(v).Item;

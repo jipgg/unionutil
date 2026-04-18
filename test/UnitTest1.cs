@@ -20,22 +20,6 @@ public enum Case { A, B, C, D, E, F, G }
 )]
 public partial class BasicUnion<TA, TB, TC, TD, TE, TF, TG> : IUnion<TA, TB, TC, TD, TE, TF, TG>;
 
-[InlineArray(8)]
-struct SBO { byte _element0; }
-
-class Xyz {
-   static void test() {
-      SBO sbo = default;
-      Span<byte> x = sbo;
-      int myInt = 1;
-      if (!RuntimeHelpers.IsReferenceOrContainsReferences<int>() && Unsafe.SizeOf<int>() <= 8) {
-         MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref myInt, 1))
-            .CopyTo(sbo);
-         ref var i = ref MemoryMarshal.AsRef<int>(x);
-      }
-   }
-}
-
 public class MutableStructTests {
    [Fact]
    public void CanAssign() {
@@ -72,7 +56,6 @@ public class MutableStructTests {
       Assert.Equal("abc", r.Err.Message);
       r2 = 10;
       Assert.Equal(10, r2.Ok);
-      Assert.Null(r2._object);
 
       string x = r switch {
          { Tag: Err, Err: var e } => e.Message,
@@ -82,21 +65,22 @@ public class MutableStructTests {
       Assert.Equal("abc", x);
    }
    [Fact]
-   public void UsesSBO() {
-      BoxedResult<int, Exception> r = 1;
-      Assert.Equal(16, Unsafe.SizeOf<BoxedResult<int, Exception>>());
-      Assert.Null(r._object);
-      r.Ok = 123;
-      Assert.Equal(123, r.Ok);
-      Assert.Null(r._object);
-   }
-   [Fact]
-   public void DoesNotUseSBO() {
-      BoxedResult<double, Exception> r = 1;
-      Assert.NotNull(r._object);
-      r.Ok = double.MaxValue;
-      Assert.Equal(double.MaxValue, r.Ok);
-      Assert.NotNull(r._object);
+   public void SBOWorks() {
+      Sbo16<int, double, Exception> sbo16 = 0.5;
+      Assert.Equal(16, Unsafe.SizeOf<Sbo7<int, double, Exception>>());
+      Assert.Null(sbo16._object);
+      Assert.Equal(0.5, Unsafe.As<byte, double>(ref sbo16._sbo.Data));
+      Assert.Equal(2, sbo16._index);
+
+      Sbo7<int, double, Exception> sbo7 = 0.5;
+      Assert.Equal(16, Unsafe.SizeOf<Sbo7<int, double, Exception>>());
+      Assert.NotNull(sbo7._object);
+      Assert.True(sbo7.TryGetValue(out double d));
+      Assert.Equal(0.5, d);
+      Assert.Equal(2, sbo7._index);
+      sbo7.SetValue(1);
+      Assert.Equal(1, Unsafe.As<byte, int>(ref sbo7._sbo.Data));
+      Assert.Equal(1, sbo7._index);
    }
 }
 

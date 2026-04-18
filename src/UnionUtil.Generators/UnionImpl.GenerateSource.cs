@@ -10,6 +10,7 @@ partial class UnionImpl {
    public const string OverlappedType = "Overlapped";
    public const string IndexField = "_index";
    public const string CodeAnalysis = "global::System.Diagnostics.CodeAnalysis";
+   const string _unscopedRef = $"{CodeAnalysis}.UnscopedRef";
    public const string InteropServices = "global::System.Runtime.InteropServices";
    public const string InvalidOperationException = "global::System.InvalidOperationException";
    public const string UnionUtil = "global::UnionUtil";
@@ -17,13 +18,13 @@ partial class UnionImpl {
    static class GenericHelpers {
       const string prefix = $"global::UnionUtil.OpenGenericHelpers";
       public static string Box(string type, string arg) => $"{prefix}.Box<{type}>({arg})";
-      public static string SboBox(string type, string sbo, string obj, string arg) => $"{prefix}.Box<{type}>({sbo}, ref {obj}, {arg})";
+      public static string SboBox(string type, string sboType, string sbo, string obj, string arg)
+         => $"{prefix}.Box<{type},{sboType}>(ref {Unsafe}.AsRef(in {sbo}), ref {obj}, {arg})";
       public static string Ref(string type, string arg) => $"{prefix}.Ref<{type}>(ref {arg})";
-      public static string SboRef(string type, string sbo, string obj) => $"{prefix}.Ref<{type}>({sbo}, ref {obj})";
+      public static string SboRef(string type, string sboType, string sbo, string obj) => $"{prefix}.Ref<{type},{sboType}>(ref {sbo}, ref {obj})";
       public static string Get(string type, string arg) => $"{prefix}.Get<{type}>({arg})";
-      public static string SboGet(string type, string sbo, string obj) => $"{prefix}.Get<{type}>({sbo}, {obj})";
+      public static string SboGet(string type, string sboType, string sbo, string obj) => $"{prefix}.Get<{type},{sboType}>(ref {Unsafe}.AsRef(in {sbo}), {obj})";
    }
-
    static string FieldName(in TypeArg e) {
       return $"_{e.index}";
    }
@@ -126,6 +127,7 @@ partial class UnionImpl {
          """);
       }
       TypeArg[] toOverlap = [.. entries.Where(static e => e.strategy == Strategy.Overlap)];
+      TypeArg[] toBox = [.. entries.Where(static e => e.strategy is Strategy.Box)];
       if (toOverlap.Length is 0) goto skip_to_overlap;
       sb.AppendLine($$"""
             [{{InteropServices}}.StructLayout({{InteropServices}}.LayoutKind.Explicit)]
@@ -148,14 +150,22 @@ partial class UnionImpl {
          writeProperties(e, $"{OverlappedField}.{FieldName(e)}");
       }
    skip_to_overlap:
-      TypeArg[] toBox = [.. entries.Where(static e => e.strategy is Strategy.Box)];
       if (toBox.Length is 0) goto skip_to_box;
       sb.AppendLine($"  {visibility}{readonlyFieldMod} object? {ObjectField} = default;");
       if (ok.Sbo is { } sbo && toBox.Any(e => e.kind is Kind.Generic)) {
          sb.AppendLine($$"""
             [{{CompilerServices}}.InlineArray({{sbo.Size}})]
-            {{visibility}} struct SmallBufferStorage {
+            {{visibility}} struct SmallBufferStorage: global::UnionUtil.ISmallBuffer {
                byte _element0;
+               public static int Size {
+                  [{{AggressiveInlining}}]
+                  get => {{sbo.Size}};
+               }
+               public ref byte Data {
+                  [{{_unscopedRef}}]
+                  [{{AggressiveInlining}}]
+                  get => ref _element0;
+               }
             }
             {{visibility}}{{readonlyFieldMod}} SmallBufferStorage _sbo = default;
          """);
@@ -163,7 +173,7 @@ partial class UnionImpl {
       foreach (var e in toBox) {
          if (e.kind is Kind.Generic && e.strategy is Strategy.Box) {
             if (ok.Sbo is not null) {
-               writeConstructor(e, $"{GenericHelpers.SboBox(e.type, "_sbo", ObjectField, "v")}");
+               writeConstructor(e, $"{GenericHelpers.SboBox(e.type, "SmallBufferStorage", "_sbo", ObjectField, "v")}");
             } else {
                writeConstructor(e, $"{ObjectField} = {GenericHelpers.Box(e.type, "v")}");
             }
@@ -171,16 +181,16 @@ partial class UnionImpl {
          var get = e.kind switch {
             Kind.Reference or Kind.Interface => $"{Unsafe}.As<{e.type}>({ObjectField}!)",
             Kind.Value or Kind.Unmanaged => $"{Unsafe}.Unbox<{e.type}>({ObjectField}!)",
-            _ => ok.Sbo.HasValue ? GenericHelpers.SboGet(e.type, "_sbo", ObjectField) : GenericHelpers.Get(e.type, ObjectField),
+            _ => ok.Sbo.HasValue ? GenericHelpers.SboGet(e.type, "SmallBufferStorage", "_sbo", ObjectField) : GenericHelpers.Get(e.type, ObjectField),
          };
-         getExprs = [.. getExprs, (e.index, ok.Sbo.HasValue ? GenericHelpers.SboGet(e.type, "_sbo", ObjectField) : ObjectField)];
+         getExprs = [.. getExprs, (e.index, ok.Sbo.HasValue ? GenericHelpers.SboGet(e.type, "SmallBufferStorage", "_sbo", ObjectField) : ObjectField)];
          writeTryGetValue(e, $"v = {get};");
          var T = e.type;
          string refExpr;
          refExpr = e.kind switch {
             Kind.Interface or Kind.Reference => $"{Unsafe}.As<object?,{T}>(ref {ObjectField}!)",
             Kind.Value or Kind.Unmanaged => $"{Unsafe}.Unbox<{T}>({ObjectField}!)",
-            _ => ok.Sbo.HasValue ? GenericHelpers.SboRef(T, "_sbo", ObjectField) : GenericHelpers.Ref(T, ObjectField),
+            _ => ok.Sbo.HasValue ? GenericHelpers.SboRef(T, "SmallBufferStorage", "_sbo", ObjectField) : GenericHelpers.Ref(T, ObjectField),
          };
          writeSetValue(e, refExpr);
          if (!ok.Sbo.HasValue) {

@@ -9,15 +9,19 @@ BenchmarkDotNet v0.15.8, Linux EndeavourOS
 
 
 ```
-| Method                    | Job            | Runtime        | Mean      | Error     | StdDev    | Median    | Gen0   | Allocated |
-|-------------------------- |--------------- |--------------- |----------:|----------:|----------:|----------:|-------:|----------:|
-| &#39;speculative union&#39;       | .NET 10.0      | .NET 10.0      | 5.9207 ns | 0.0509 ns | 0.0451 ns | 5.9018 ns | 0.0051 |      32 B |
-| generic,sequential        | .NET 10.0      | .NET 10.0      | 0.0148 ns | 0.0192 ns | 0.0180 ns | 0.0020 ns |      - |         - |
-| generic,sequential,tagged | .NET 10.0      | .NET 10.0      | 0.0121 ns | 0.0164 ns | 0.0145 ns | 0.0076 ns |      - |         - |
-| generic,boxed             | .NET 10.0      | .NET 10.0      | 7.2218 ns | 0.0928 ns | 0.0822 ns | 7.1938 ns | 0.0051 |      32 B |
-| monomorphized             | .NET 10.0      | .NET 10.0      | 0.0207 ns | 0.0291 ns | 0.0272 ns | 0.0073 ns |      - |         - |
-| &#39;speculative union&#39;       | NativeAOT 10.0 | NativeAOT 10.0 | 1.1461 ns | 0.0086 ns | 0.0076 ns | 1.1433 ns |      - |         - |
-| generic,sequential        | NativeAOT 10.0 | NativeAOT 10.0 | 0.1019 ns | 0.0194 ns | 0.0182 ns | 0.1011 ns |      - |         - |
-| generic,sequential,tagged | NativeAOT 10.0 | NativeAOT 10.0 | 0.2535 ns | 0.0389 ns | 0.0520 ns | 0.2627 ns |      - |         - |
-| generic,boxed             | NativeAOT 10.0 | NativeAOT 10.0 | 4.2726 ns | 0.0787 ns | 0.0615 ns | 4.2553 ns | 0.0051 |      32 B |
-| monomorphized             | NativeAOT 10.0 | NativeAOT 10.0 | 0.0065 ns | 0.0098 ns | 0.0092 ns | 0.0000 ns |      - |         - |
+| Method                      | Job            | Runtime        | Mean       | Error     | StdDev    | Median     | Gen0   | Allocated |
+|---------------------------- |--------------- |--------------- |-----------:|----------:|----------:|-----------:|-------:|----------:|
+| &#39;speculative union&#39;         | .NET 10.0      | .NET 10.0      | 11.1270 ns | 0.3536 ns | 0.9914 ns | 10.7314 ns | 0.0076 |      48 B |
+| generic,sequential          | .NET 10.0      | .NET 10.0      |  0.3522 ns | 0.0375 ns | 0.0313 ns |  0.3537 ns |      - |         - |
+| generic,sequential,tagged   | .NET 10.0      | .NET 10.0      |  0.0676 ns | 0.0623 ns | 0.0666 ns |  0.0548 ns |      - |         - |
+| generic,boxed               | .NET 10.0      | .NET 10.0      | 11.5482 ns | 0.2890 ns | 0.2704 ns | 11.4785 ns | 0.0076 |      48 B |
+| generic,boxed,sbo32(fits)   | .NET 10.0      | .NET 10.0      | 19.0391 ns | 0.4350 ns | 0.4069 ns | 18.9045 ns |      - |         - |
+| generic,boxed,sbo7(default) | .NET 10.0      | .NET 10.0      |  1.6443 ns | 0.0573 ns | 0.0508 ns |  1.6431 ns |      - |         - |
+| monomorphized               | .NET 10.0      | .NET 10.0      |  0.5513 ns | 0.0869 ns | 0.0892 ns |  0.5124 ns |      - |         - |
+| &#39;speculative union&#39;         | NativeAOT 10.0 | NativeAOT 10.0 |  1.5825 ns | 0.0524 ns | 0.0490 ns |  1.5868 ns |      - |         - |
+| generic,sequential          | NativeAOT 10.0 | NativeAOT 10.0 |  1.2548 ns | 0.0667 ns | 0.0685 ns |  1.2417 ns |      - |         - |
+| generic,sequential,tagged   | NativeAOT 10.0 | NativeAOT 10.0 |  1.3818 ns | 0.0566 ns | 0.0530 ns |  1.3755 ns |      - |         - |
+| generic,boxed               | NativeAOT 10.0 | NativeAOT 10.0 |  7.7896 ns | 0.1149 ns | 0.1019 ns |  7.8119 ns | 0.0076 |      48 B |
+| generic,boxed,sbo32(fits)   | NativeAOT 10.0 | NativeAOT 10.0 | 19.5867 ns | 0.3458 ns | 0.3235 ns | 19.6589 ns |      - |         - |
+| generic,boxed,sbo7(default) | NativeAOT 10.0 | NativeAOT 10.0 |  3.2688 ns | 0.0592 ns | 0.0525 ns |  3.2789 ns |      - |         - |
+| monomorphized               | NativeAOT 10.0 | NativeAOT 10.0 |  1.9096 ns | 0.0714 ns | 0.0903 ns |  1.8833 ns |      - |         - |

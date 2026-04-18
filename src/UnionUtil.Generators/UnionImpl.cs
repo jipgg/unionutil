@@ -14,7 +14,7 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
                }, Resolve).Where(static t => t != default);
       ctx.RegisterSourceOutput(provider, GenerateSource);
    }
-   enum Strategy { Box, Sequential, Overlap, SboBox };
+   enum Strategy { Box, Sequential, Overlap };
    enum Kind : byte { Unmanaged, Generic, Reference, Value, Interface };
    readonly record struct Sbo(uint Size);
    sealed record Resolved(
@@ -80,7 +80,7 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
       var mutable = !attr.Named<bool?>("ReadOnly");
       var sboSize = (uint?)symbol.GetAttributes()
          .Where(e => e.AttributeClass?.Name is "SmallBufferOptimizedAttribute")
-         .SingleOrDefault()?.ConstructorArguments[0].Value;
+         .SingleOrDefault()?.ConstructorArguments[0].Value ?? 0;
       if (mutable.HasValue) goto mutable_done;
       switch (ctx.TargetNode) {
          case StructDeclarationSyntax x:
@@ -198,7 +198,7 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
             2 => "public",
             _ => "private",
          },
-         Sbo: sboSize.HasValue ? new(sboSize.Value) : null
+         Sbo: sboSize is not 0 ? new(sboSize) : null
       ), problems);
    }
    static SymbolDisplayFormat Format =>
