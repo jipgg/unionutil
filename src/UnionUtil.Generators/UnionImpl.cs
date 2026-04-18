@@ -14,8 +14,9 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
                }, Resolve).Where(static t => t != default);
       ctx.RegisterSourceOutput(provider, GenerateSource);
    }
-   enum Strategy { Box, Sequential, Overlap };
+   enum Strategy { Box, Sequential, Overlap, SboBox };
    enum Kind : byte { Unmanaged, Generic, Reference, Value, Interface };
+   readonly record struct Sbo(uint Size);
    sealed record Resolved(
       TypeArgs TypeArgs,
       Name Name,
@@ -23,7 +24,8 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
       bool Mutable,
       string Visibility,
       bool Nullable,
-      Tagged Tagged
+      Tagged? Tagged,
+      Sbo? Sbo
    );
    readonly struct TypeArg(int index, string name, Kind kind, Strategy strategy) : IEquatable<TypeArg> {
       public readonly int index = index;
@@ -32,7 +34,7 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
       public readonly Strategy strategy = strategy;
       public bool Equals(TypeArg other) => type == other.type && strategy == other.strategy;
    }
-   readonly record struct Tagged(string? Enum, string? Name, string[]? Cases, bool Enabled) {
+   readonly record struct Tagged(string? Enum, string? Name, string[]? Cases) {
       public string this[int typeIndex] => Cases?[typeIndex - 1] ?? $"Case{typeIndex}";
       public string this[in TypeArg arg] => this[arg.index];
    }
@@ -76,6 +78,9 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
       var boxGenerics = attr.Named<bool?>("BoxOpenGenerics") ?? false;
       var boxStructs = attr.Named<bool?>("BoxManagedStructs") ?? false;
       var mutable = !attr.Named<bool?>("ReadOnly");
+      var sboSize = (uint?)symbol.GetAttributes()
+         .Where(e => e.AttributeClass?.Name is "SmallBufferOptimizedAttribute")
+         .SingleOrDefault()?.ConstructorArguments[0].Value;
       if (mutable.HasValue) goto mutable_done;
       switch (ctx.TargetNode) {
          case StructDeclarationSyntax x:
@@ -158,7 +163,7 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
          resolvedTypeArgs[i] = new(index, name, kind, strategy);
       }
    skip_resolving_union_types:
-      Tagged resolvedTaggeds = default;
+      Tagged? resolvedTaggeds = default;
       var tagged = symbol.GetAttributes()
          .Where(e => e.AttributeClass?.MetadataName is "TaggedAttribute`1")
          .SingleOrDefault();
@@ -173,7 +178,7 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
       }
       var tagName = (string)tagged.ConstructorArguments[0].Value!;
       var tagEnum = tag.ToDisplayString(Format);
-      resolvedTaggeds = new(tagEnum, tagName, taggeds, true);
+      resolvedTaggeds = new(tagEnum, tagName, taggeds);
    taggeds_done:
       Debug.Assert(mutable.HasValue);
       var ns = symbol.ContainingNamespace;
@@ -185,14 +190,15 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
             Params: [.. symbol.TypeParameters.Select(e => e.Name)]
          ),
          Kind: ctx.TargetNode.Kind(),
-         Mutable: mutable!.Value,
+         Mutable: mutable.Value,
          Nullable: attr.Named<bool?>("Nullable") ?? false,
          Tagged: resolvedTaggeds,
          Visibility: attr.Named<int?>("FieldVisibility") switch {
             1 => "internal",
             2 => "public",
             _ => "private",
-         }
+         },
+         Sbo: sboSize.HasValue ? new(sboSize.Value) : null
       ), problems);
    }
    static SymbolDisplayFormat Format =>

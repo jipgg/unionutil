@@ -11,8 +11,7 @@ public partial struct Result<T, E> : IUnion<T, E> where E : Exception;
 
 
 [UnionImpl(FieldVisibility = Visibility.Internal)]
-[Tagged<Result>]
-public partial struct Result<T> : IUnion<T, Exception> {
+[Tagged<Result>] public partial struct Result<T> : IUnion<T, Exception> {
    [MethodImpl(AggressiveInlining)]
    public static implicit operator Result<T, Exception>(Result<T> result) {
       return Unsafe.As<Result<T>, Result<T, Exception>>(ref result);
@@ -27,14 +26,14 @@ public partial struct Result<T> : IUnion<T, Exception> {
    FieldVisibility = Visibility.Internal,
    BoxManagedStructs = true,
    BoxOpenGenerics = true
-)]
+), SmallBufferOptimized]
 public partial struct BoxedResult<T, E> : IUnion<T, E> where E : Exception;
 
 [Tagged<Result>, UnionImpl(
       FieldVisibility = Visibility.Internal,
       BoxManagedStructs = true,
       BoxOpenGenerics = true
-)]
+), SmallBufferOptimized]
 public partial struct BoxedResult<T> : IUnion<T, Exception> {
    [MethodImpl(AggressiveInlining)]
    public static implicit operator BoxedResult<T, Exception>(BoxedResult<T> result) {

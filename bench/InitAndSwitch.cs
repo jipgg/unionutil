@@ -69,6 +69,11 @@ public partial struct GeneratedBoxed<T1, T2, T3> : IUnion<T1, T2, T3>;
 public partial struct GeneratedWhereClass<T1, T2, T3> : IUnion<T1, T2, T3>
 where T1 : class where T2 : class where T3 : class;
 
+[UnionImpl(Nullable = true), SmallBuffer(16)]
+public partial struct GeneratedSbo16<T1, T2, T3> : IUnion<T1, T2, T3>;
+[UnionImpl(Nullable = true), SmallBuffer(8)]
+public partial struct GeneratedSbo8<T1, T2, T3> : IUnion<T1, T2, T3>;
+
 [UnionImpl(Nullable = true), Union<int, double, Something>]
 public partial struct GeneratedStatically;
 
