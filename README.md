@@ -12,13 +12,15 @@ Unions will support custom, user supplied implementations, hence the reasoning f
 ## Main feature set
 * Generated unions are congruent with the current compiler feature structural interface in the .NET11 preview
 * Concrete `unmanaged` types always share the same storage in memory
+* SBO support for avoiding boxing of small `unmanaged` types in unions with open generics
 * Configurability of whether certain types should be stored sequentially or boxed
 * Support for mutable union types
 * Optionally tag the union with the `Tagged<TEnum>` attribute for labelled properties.
-# Current limitatios
+# Current limitations
 ## `where T: unmanaged`
 While legal for the compiler, Overlapping generic fields are not allowed by the runtime, even when constrained to unmanaged. Meaning `where T: unmanaged` will follow the same rules as `where T: struct` for the time being.
-Potential workaround would be an option to generate a small buffer optimization field with a user attributed fixed size, then store small values in there and otherwise do a boxing fallback. I'd have to look into finding an acceptable solution.
+
+For unions with `BoxOpenGenerics = true` or `BoxManagedStructs = true` you can optionally specify `[SmallBufferOptimized(uint sizeInBytes)]` as an optimization to avoid boxing whenever a generic unmanaged type's size fits into the small buffer field to avoid allocation. The default size for this SBO buffer is 7 bytes. The reasoning for this seemingly arbitrary size is that this results in the memory layout of the union to simply recycle the padding otherwise created between the `object` boxing field and the `byte` type index field, keeping the struct size the same as without the SBO in these scenarios.
 # Installation
 ```sh
 dotnet package add UnionUtil
