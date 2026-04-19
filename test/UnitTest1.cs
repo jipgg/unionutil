@@ -9,7 +9,7 @@ using static MutableTag;
 
 public enum MutableTag { Int, Double, Vector3 }
 
-[Tagged<MutableTag>("Is")]
+[Tagged<MutableTag>]
 [UnionImpl(Nullable = true)]
 [Union<int, double, Vector3>]
 partial struct MutableStruct;
@@ -32,10 +32,10 @@ public class MutableStructTests {
       BasicUnion<int, float, double, nint, nuint, uint, object> b = 1;
 
       m = m switch {
-         { Is: Double, Double: var d } => ((int)d),
-         { Is: Vector3, Vector3: var v } => (int)v.X,
-         { Is: Int, Int: var i } => i,
-         { Is: null } => 0,
+         { Tag: Double, Double: var d } => ((int)d),
+         { Tag: Vector3, Vector3: var v } => (int)v.X,
+         { Tag: Int, Int: var i } => i,
+         { Tag: null } => 0,
          _ => throw new(),
       };
    }
@@ -43,11 +43,19 @@ public class MutableStructTests {
    public void Boxed() {
       BoxedResult<int, Exception> r = 1;
       Assert.Equal(Ok, r.Tag);
+      Assert.True(r.Is<int>());
+      Assert.True(r.Is(1));
+      Assert.False(r.Is<Exception>());
+      Assert.False(r.Is<object>());
       Assert.Equal(1, r.Ok);
       r.Ok += 123;
       Assert.ThrowsAny<InvalidOperationException>(() => r.Err);
       Assert.Equal(124, r.Ok);
       r.Err = new("abc");
+      Assert.True(r.Is(2));
+      Assert.True(r.Is<Exception>());
+      Assert.False(r.Is<int>());
+      Assert.False(r.Is<object>());
       Assert.Equal(Err, r.Tag);
       Assert.ThrowsAny<InvalidOperationException>(() => r.Ok);
       Assert.Equal("abc", r.Err.Message);

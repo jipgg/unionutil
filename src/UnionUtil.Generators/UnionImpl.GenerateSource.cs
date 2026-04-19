@@ -238,6 +238,17 @@ partial class UnionImpl {
       if (ok.Nullable) {
          sb.AppendLine($"  public bool HasValue => {_indexField} != 0;");
       }
+      sb.AppendLine($$"""
+         [{{_aggressiveInlining}}]
+         public{{readonlyMethodMod}} bool Is<Tx>() => {{_indexField}} switch {
+      """);
+      foreach (var e in entries) sb.AppendLine($"      {e.index} => typeof(Tx) == typeof({e.type}),");
+      sb.AppendLine($$"""
+            _ => false,
+         };
+         [{{_aggressiveInlining}}]
+         public{{readonlyMethodMod}} bool Is(byte typeIndex) => {{_indexField}} == typeIndex;
+      """);
       if (ok.Mutable) {
          sb.AppendLine($$"""
             [{{_aggressiveInlining}}]
