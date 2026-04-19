@@ -66,15 +66,27 @@ public class MutableStructTests {
    }
    [Fact]
    public void SBOWorks() {
-      Sbo16<int, double, Exception> sbo16 = 0.5;
-      Assert.Equal(16, Unsafe.SizeOf<Sbo7<int, double, Exception>>());
-      Assert.Null(sbo16._object);
-      Assert.Equal(0.5, Unsafe.As<byte, double>(ref sbo16._sbo.Data));
-      Assert.Equal(2, sbo16._index);
+      Sbo23<int, double, Exception> sbo23 = 0.5;
+      Assert.Equal(32, Unsafe.SizeOf<Sbo23<int, double, Exception>>());
+      Assert.Null(sbo23._box);
+      Assert.Equal(0.5, Unsafe.As<byte, double>(ref sbo23._sbo.Data));
+      Assert.Equal(2, sbo23._index);
+
+      Sbo55<int, double, Exception> sbo55 = 0.5;
+      Assert.Equal(64, Unsafe.SizeOf<Sbo55<int, double, Exception>>());
+      Assert.Null(sbo55._box);
+      Assert.Equal(0.5, Unsafe.As<byte, double>(ref sbo55._sbo.Data));
+      Assert.Equal(2, sbo55._index);
+
+      Sbo15<int, double, Exception> sbo15 = 0.5;
+      Assert.Equal(24, Unsafe.SizeOf<Sbo15<int, double, Exception>>());
+      Assert.Null(sbo15._box);
+      Assert.Equal(0.5, Unsafe.As<byte, double>(ref sbo15._sbo.Data));
+      Assert.Equal(2, sbo15._index);
 
       Sbo7<int, double, Exception> sbo7 = 0.5;
       Assert.Equal(16, Unsafe.SizeOf<Sbo7<int, double, Exception>>());
-      Assert.NotNull(sbo7._object);
+      Assert.NotNull(sbo7._box);
       Assert.True(sbo7.TryGetValue(out double d));
       Assert.Equal(0.5, d);
       Assert.Equal(2, sbo7._index);
@@ -83,4 +95,3 @@ public class MutableStructTests {
       Assert.Equal(1, sbo7._index);
    }
 }
-

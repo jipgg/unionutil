@@ -46,7 +46,11 @@ public partial struct BoxedResult<T> : IUnion<T, Exception> {
    }
 }
 
-[UnionImpl(Nullable = true, BoxOpenGenerics = true, FieldVisibility = Visibility.Internal), SmallBufferOptimized(16)]
-public partial struct Sbo16<T1, T2, T3> : IUnion<T1, T2, T3>;
+[UnionImpl(Nullable = true, BoxOpenGenerics = true, FieldVisibility = Visibility.Internal), SmallBufferOptimized(23)]
+public partial struct Sbo23<T1, T2, T3> : IUnion<T1, T2, T3>;
+[UnionImpl(Nullable = true, BoxOpenGenerics = true, FieldVisibility = Visibility.Internal), SmallBufferOptimized(55)]
+public partial struct Sbo55<T1, T2, T3> : IUnion<T1, T2, T3>;
+[UnionImpl(Nullable = true, BoxOpenGenerics = true, FieldVisibility = Visibility.Internal), SmallBufferOptimized(15)]
+public partial struct Sbo15<T1, T2, T3> : IUnion<T1, T2, T3>;
 [UnionImpl(Nullable = true, BoxOpenGenerics = true, FieldVisibility = Visibility.Internal), SmallBufferOptimized]
 public partial struct Sbo7<T1, T2, T3> : IUnion<T1, T2, T3>;

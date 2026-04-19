@@ -25,3 +25,6 @@ public sealed class UnionImplAttribute : Attribute {
 // 7 as default so it fills out the padding of the the type index field
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 public sealed class SmallBufferOptimizedAttribute(uint size = 7) : Attribute;
+
+// [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
+// public sealed class SmallBufferOptimizedAttribute<TSmallBuffer> : Attribute where TSmallBuffer: ISmallBuffer;
