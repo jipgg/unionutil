@@ -119,7 +119,7 @@ public class ModifyBoxed {
    }
    [Benchmark(Description = "generated(int)")]
    public void Generated() {
-      GeneratedBoxed<int, float, double> boxed = 1;
+      Boxed<int, float, double> boxed = 1;
       for (int i = 0; i < N; ++i) {
          boxed.TryGetValue(out int x);
          boxed.SetValue(x + i);
@@ -136,7 +136,7 @@ public class ModifyBoxed {
    }
    [Benchmark(Description = "generated(struct(object))")]
    public void GeneratedManaged() {
-      GeneratedBoxed<ManagedStruct, float, double> boxed = new ManagedStruct { Object = null! };
+      Boxed<ManagedStruct, float, double> boxed = new ManagedStruct { Object = null! };
       for (int i = 0; i < N; ++i) {
          boxed.TryGetValue(out ManagedStruct x);
          x.Object = null!;
@@ -154,7 +154,7 @@ public class ModifyBoxed {
    }
    [Benchmark(Description = "generated(List<int>)")]
    public void GeneratedClass() {
-      GeneratedBoxed<List<int>, float, double> boxed = new List<int>();
+      Boxed<List<int>, float, double> boxed = new List<int>();
       for (int i = 0; i < N; ++i) {
          boxed.TryGetValue(out List<int> x);
          boxed.SetValue(x);

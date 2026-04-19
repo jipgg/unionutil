@@ -4,7 +4,6 @@ global using BenchmarkDotNet.Jobs;
 global using static System.Runtime.CompilerServices.MethodImplOptions;
 global using UnionUtil;
 using BenchmarkDotNet.Running;
-BenchmarkRunner.Run<InitAndSwitch>();
-// BenchmarkRunner.Run<ModifyBoxed>();
-
-
+// BenchmarkRunner.Run(typeof(Program).Assembly);
+BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly)
+   .Run();
