@@ -34,7 +34,7 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
       public readonly Strategy strategy = strategy;
       public bool Equals(TypeArg other) => type == other.type && strategy == other.strategy;
    }
-   readonly record struct Tagged(string? Enum, string? Name, string[]? Cases) {
+   readonly record struct Tagged(string? Enum, string? Name, string[]? Cases, bool Dense) {
       public string this[int typeIndex] => Cases?[typeIndex - 1] ?? $"Case{typeIndex}";
       public string this[in TypeArg arg] => this[arg.index];
    }
@@ -163,22 +163,33 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
          resolvedTypeArgs[i] = new(index, name, kind, strategy);
       }
    skip_resolving_union_types:
-      Tagged? resolvedTaggeds = default;
+      Tagged? resolvedTagged = default;
       var tagged = symbol.GetAttributes()
          .Where(e => e.AttributeClass?.MetadataName is "TaggedAttribute`1")
          .SingleOrDefault();
       if (tagged is null) goto taggeds_done;
       var tag = tagged.AttributeClass!.TypeArguments[0];
+      // var members = tag.GetMembers()
+      //    .Where(static e => e.Kind == SymbolKind.Field);
       var members = tag.GetMembers()
-         .Where(e => e.Kind == SymbolKind.Field);
-      string[] taggeds = [.. members.Select(static e => e.Name)];
-      if (taggeds.Length != resolvedTypeArgs?.Length) {
+         .OfType<IFieldSymbol>()
+         .Where(static e => e.HasConstantValue)
+         .ToArray();
+      bool isDense = true;
+      for (long i = 0; i < members.Length; ++i) {
+         if (Convert.ToInt64(members[i].ConstantValue) != i) {
+            isDense = false;
+            break;
+         }
+      }
+      string[] names = [.. members.Select(static e => e.Name)];
+      if (names.Length != resolvedTypeArgs?.Length) {
          emitProblem($"length of tag enum is not the same as length of cases");
          goto taggeds_done;
       }
       var tagName = (string)tagged.ConstructorArguments[0].Value!;
       var tagEnum = tag.ToDisplayString(Format);
-      resolvedTaggeds = new(tagEnum, tagName, taggeds);
+      resolvedTagged = new(tagEnum, tagName, names, isDense);
    taggeds_done:
       Debug.Assert(mutable.HasValue);
       var ns = symbol.ContainingNamespace;
@@ -192,7 +203,7 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
          Kind: ctx.TargetNode.Kind(),
          Mutable: mutable.Value,
          Nullable: attr.Named<bool?>("Nullable") ?? false,
-         Tagged: resolvedTaggeds,
+         Tagged: resolvedTagged,
          Visibility: attr.Named<int?>("FieldVisibility") switch {
             1 => "internal",
             2 => "public",
