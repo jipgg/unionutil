@@ -16,7 +16,7 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
    }
    enum Strategy { Box, Sequential, Overlap };
    enum Kind : byte { Unmanaged, Generic, Reference, Value, Interface };
-   readonly record struct Sbo(uint Size);
+   readonly record struct Sbo(uint Size, string? TypeName);
    sealed record Resolved(
       TypeArgs TypeArgs,
       Name Name,
@@ -42,7 +42,6 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
       public readonly TypeArg[] entries = entries;
       public bool Equals(TypeArgs other) => entries.AsSpan().SequenceEqual(other.entries);
    }
-
    readonly record struct Name(string? Namespace, string Type, string[] Params) {
       public string HintName() {
          var sb = new StringBuilder();
@@ -75,12 +74,28 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
          problems = [.. problems, new(location ?? symbol.Locations.First(), message, severity)];
       }
       var attr = ctx.Attributes[0];
+      var symbolAttributes = symbol.GetAttributes();
       var boxGenerics = attr.Named<bool?>("BoxOpenGenerics") ?? false;
       var boxStructs = attr.Named<bool?>("BoxManagedStructs") ?? false;
       var mutable = !attr.Named<bool?>("ReadOnly");
+      const string sboAttr = "SmallBufferOptimizedAttribute";
+      Sbo sbo = default;
+      var sboType = symbolAttributes
+         .Where(static e => e.AttributeClass?.MetadataName is $"{sboAttr}`1")
+         .Select(static e => ((INamedTypeSymbol)e.AttributeClass!).TypeArguments[0])
+         .FirstOrDefault()?
+         .ToDisplayString(Format);
+      if (sboType is not null) {
+         sbo = new(0, sboType);
+         goto sbo_done;
+      }
       var sboSize = (uint?)symbol.GetAttributes()
-         .Where(e => e.AttributeClass?.Name is "SmallBufferOptimizedAttribute")
+         .Where(e => e.AttributeClass?.MetadataName is sboAttr)
          .SingleOrDefault()?.ConstructorArguments[0].Value ?? 0;
+      if (sboSize is not 0) {
+         sbo = new(sboSize, null);
+      }
+   sbo_done:
       if (mutable.HasValue) goto mutable_done;
       switch (ctx.TargetNode) {
          case StructDeclarationSyntax x:
@@ -209,7 +224,7 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
             2 => "public",
             _ => "private",
          },
-         Sbo: sboSize is not 0 ? new(sboSize) : null
+         Sbo: sbo == default ? null : sbo
       ), problems);
    }
    static SymbolDisplayFormat Format =>

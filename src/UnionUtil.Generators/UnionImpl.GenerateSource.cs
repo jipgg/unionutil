@@ -136,8 +136,9 @@ partial class UnionImpl {
       string? TSbo = default;
       if (sboEnabled) {
          var size = ok.Sbo!.Value.Size;
-         TSbo = size switch {
-            7 or 15 or 23 => $"{_unionUtil}.SmallBuffer{size}",
+         TSbo = ok.Sbo switch {
+            {TypeName: string tn} => tn,
+            { Size: 7 or 15 or 23 } => $"{_unionUtil}.SmallBuffer{size}",
             _ => _fallbackSboType,
          };
          sb.AppendLine($"   {visibility}{readonlyFieldMod} {TSbo} {_sboField} = default;");
@@ -267,7 +268,7 @@ partial class UnionImpl {
          """);
       }
    clear_value_done:
-      if (ok.Tagged is not { } tagged || tagged.Enum is not {} @enum) {
+      if (ok.Tagged is not { } tagged || tagged.Enum is not { } @enum) {
          goto tag_getter_done;
       }
       if (ok.Nullable) @enum += "?";

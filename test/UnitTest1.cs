@@ -95,7 +95,7 @@ public class MutableStructTests {
       Sbo7<int, double, Exception> sbo7 = 0.5;
       Assert.Equal(16, Unsafe.SizeOf<Sbo7<int, double, Exception>>());
       Assert.NotNull(sbo7._box);
-      sbo7.Is<double>();
+      Assert.True(sbo7.Is<double>());
       Assert.True(sbo7.TryGetValue(out double d));
       Assert.Equal(0.5, d);
       Assert.Equal(2, sbo7._index);

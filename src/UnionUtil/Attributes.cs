@@ -26,5 +26,5 @@ public sealed class UnionImplAttribute : Attribute {
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 public sealed class SmallBufferOptimizedAttribute(uint size = 7) : Attribute;
 
-// [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
-// public sealed class SmallBufferOptimizedAttribute<TSmallBuffer> : Attribute where TSmallBuffer: ISmallBuffer;
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
+public sealed class SmallBufferOptimizedAttribute<TSmallBuffer>() : Attribute where TSmallBuffer : ISmallBuffer;
