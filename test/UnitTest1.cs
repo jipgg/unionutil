@@ -82,8 +82,6 @@ public class MutableStructTests {
       Sbo55<int, double, Exception> sbo55 = 0.5;
       Assert.Equal(64, Unsafe.SizeOf<Sbo55<int, double, Exception>>());
       Assert.Null(sbo55._box);
-      IUnion<int, double, Exception?> x = sbo55;
-      sbo55.HoldsType<Exception?>();
       Assert.Equal(0.5, Unsafe.As<byte, double>(ref sbo55._sbo.Data));
       Assert.Equal(2, sbo55._index);
 

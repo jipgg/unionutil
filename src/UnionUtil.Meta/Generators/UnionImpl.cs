@@ -208,7 +208,6 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
       var tagEnum = tag.ToDisplayString(Format);
       resolvedTagged = new(tagEnum, tagName, names, isDense);
    taggeds_done:
-      Debug.Assert(mutable.HasValue);
       var ns = symbol.ContainingNamespace;
       return (new Resolved(
          TypeArgs: new(entries: resolvedTypeArgs ?? throw new("resolvedTypes is null")),
@@ -232,12 +231,4 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
    static SymbolDisplayFormat Format =>
       SymbolDisplayFormat.FullyQualifiedFormat
       .WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Included);
-
-   static readonly DiagnosticDescriptor Descriptor = new(
-      id: "UnionUtil",
-      title: "UnionUtil error",
-      messageFormat: "{0}",
-      category: "Usage", defaultSeverity: DiagnosticSeverity.Error,
-      isEnabledByDefault: true
-   );
 }

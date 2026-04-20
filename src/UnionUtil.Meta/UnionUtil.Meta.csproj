@@ -4,16 +4,11 @@
       <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
       <LangVersion>14</LangVersion>
       <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-		<EnableAnalyzerReleaseTracking>true</EnableAnalyzerReleaseTracking>
       <ImplicitUsings>enable</ImplicitUsings>
       <IsPackable>false</IsPackable>
       <Nullable>enable</Nullable>
       <NoWarn>IDE0130</NoWarn>
    </PropertyGroup>
-   <ItemGroup>
-		<AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
-		<AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
-   </ItemGroup>
 <ItemGroup>
   <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
   <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0">

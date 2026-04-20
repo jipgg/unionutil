@@ -1,57 +1,16 @@
 using System.Runtime.CompilerServices;
 using System.Buffers;
 namespace UnionUtil.Meta.Analyzers;
+using static Diagnostics;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class UnionAnalyzer : DiagnosticAnalyzer {
 
-   static string MakeId(string name) => $"{nameof(UnionUtil)}_{name}";
-
-   static DiagnosticDescriptor MissingUnionImpl => new(
-      MakeId(nameof(MissingUnionImpl)),
-      "missing UnionImpl marker",
-      "'{0}' does nothing without marking with 'UnionUtil.UnionImplAttribute'",
-      "Usage",
-      DiagnosticSeverity.Warning,
-      true
-   );
-   static DiagnosticDescriptor MissingTypesMarker => new(
-      MakeId((nameof(MissingTypesMarker))),
-      "missing types marker",
-      "types must be marked with 'IUnion<...T>' or 'UnionAttribute<...T>'",
-      "Usage",
-      DiagnosticSeverity.Error,
-      true
-   );
-   static DiagnosticDescriptor BadTagEnumLength => new(
-      MakeId(nameof(BadTagEnumLength)),
-      "bad tag enum length",
-      "length of '{0}' does not match type count of '{1}'",
-      "Usage",
-      DiagnosticSeverity.Error,
-      true
-   );
-   static DiagnosticDescriptor MissingPartial => new(
-      MakeId(nameof(MissingPartial)),
-      "missing partial specifier",
-      "type is missing partial specifier",
-      "Usage",
-      DiagnosticSeverity.Error,
-      true
-   );
-   static DiagnosticDescriptor WillNeverHoldType => new(
-      MakeId(nameof(WillNeverHoldType)),
-      "will never hold type",
-      "will never hold type '{0}'",
-      "Usage",
-      DiagnosticSeverity.Warning,
-      true
-   );
    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [
       MissingUnionImpl,
       MissingTypesMarker,
       BadTagEnumLength,
-      MissingPartial,
+      MissingPartialKeyword,
       WillNeverHoldType,
    ];
 
@@ -169,7 +128,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       return;
    unionimpl_not_null:
       if (!node.Modifiers.Any(SyntaxKind.PartialKeyword)) {
-         ctx.ReportDiagnostic(Diagnostic.Create(MissingPartial, symbol.Locations.First()));
+         ctx.ReportDiagnostic(Diagnostic.Create(MissingPartialKeyword, symbol.Locations.First()));
       }
       if (unionSymbol is null) {
          ctx.ReportDiagnostic(Diagnostic.Create(MissingTypesMarker, impl.Loc));
