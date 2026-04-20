@@ -9,6 +9,8 @@ public enum Result { Ok, Err }
 [Tagged<Result>, UnionImpl(FieldVisibility = Visibility.Internal)]
 public partial struct Result<T, E> : IUnion<T, E> where E : Exception;
 
+partial class Abc;
+
 [UnionImpl(FieldVisibility = Visibility.Internal)]
 [Tagged<Result>]
 public partial struct Result<T> : IUnion<T, Exception> {

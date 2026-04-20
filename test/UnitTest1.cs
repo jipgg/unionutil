@@ -43,19 +43,16 @@ public class MutableStructTests {
    public void Boxed() {
       BoxedResult<int, Exception> r = 1;
       Assert.Equal(Ok, r.Tag);
-      Assert.True(r.Is<int>());
-      Assert.True(r.Is(1));
-      Assert.False(r.Is<Exception>());
-      Assert.False(r.Is<object>());
+      Assert.True(r.HoldsType<int>());
+      r.HoldsType<int>();
+      Assert.False(r.HoldsType<Exception>());
       Assert.Equal(1, r.Ok);
       r.Ok += 123;
       Assert.ThrowsAny<InvalidOperationException>(() => r.Err);
       Assert.Equal(124, r.Ok);
       r.Err = new("abc");
-      Assert.True(r.Is(2));
-      Assert.True(r.Is<Exception>());
-      Assert.False(r.Is<int>());
-      Assert.False(r.Is<object>());
+      Assert.True(r.HoldsType<Exception>());
+      Assert.False(r.HoldsType<int>());
       Assert.Equal(Err, r.Tag);
       Assert.ThrowsAny<InvalidOperationException>(() => r.Ok);
       Assert.Equal("abc", r.Err.Message);
@@ -72,6 +69,8 @@ public class MutableStructTests {
       };
       Assert.Equal("abc", x);
    }
+   static void Constraint<T>() where T: class {
+   }
    [Fact]
    public void SBOWorks() {
       Sbo23<int, double, Exception> sbo23 = 0.5;
@@ -83,6 +82,8 @@ public class MutableStructTests {
       Sbo55<int, double, Exception> sbo55 = 0.5;
       Assert.Equal(64, Unsafe.SizeOf<Sbo55<int, double, Exception>>());
       Assert.Null(sbo55._box);
+      IUnion<int, double, Exception?> x = sbo55;
+      sbo55.HoldsType<Exception?>();
       Assert.Equal(0.5, Unsafe.As<byte, double>(ref sbo55._sbo.Data));
       Assert.Equal(2, sbo55._index);
 
@@ -95,7 +96,7 @@ public class MutableStructTests {
       Sbo7<int, double, Exception> sbo7 = 0.5;
       Assert.Equal(16, Unsafe.SizeOf<Sbo7<int, double, Exception>>());
       Assert.NotNull(sbo7._box);
-      Assert.True(sbo7.Is<double>());
+      Assert.True(sbo7.HoldsType<double>());
       Assert.True(sbo7.TryGetValue(out double d));
       Assert.Equal(0.5, d);
       Assert.Equal(2, sbo7._index);

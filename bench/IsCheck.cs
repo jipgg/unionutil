@@ -9,7 +9,7 @@ public partial struct SparseCase<_T1, _T2, _T3> : IUnion<_T1, _T2, _T3>;
 
 [MemoryDiagnoser, DisassemblyDiagnoser]
 [SimpleJob(RuntimeMoniker.Net10_0)]
-public class IsCheck {
+public class TypeCheck {
    public DenseCase<int, float, object> _dense;
    public SparseCase<int, float, object> _sparse;
 
@@ -23,48 +23,38 @@ public class IsCheck {
    public bool Field() {
       return _dense._index is 1;
    }
-
    [Benchmark]
-   public bool IsT() {
-      return _dense.Is<int>();
+   public bool TryGetValue() {
+      return _dense.TryGetValue(out int _);
    }
 
    [Benchmark]
-   public bool IsIndex() {
-      return _dense.Is(1);
+   public bool HoldsType() {
+      return _dense.HoldsType<int>();
    }
 
    [Benchmark]
-   public bool IsTag_Dense() {
+   public bool Tag_Dense() {
       return _dense.Tag is DenseCaseTag.T1;
    }
    [Benchmark]
-   public bool IsTag_Sparse() {
+   public bool Tag_Sparse() {
       return _sparse.Tag is SparseCaseTag.T1;
    }
 
    [Benchmark]
-   public bool IsT_OpenGeneric() {
-      return CheckIs<int, float, object, int>(ref _dense);
+   public bool HoldsType_OpenGeneric() {
+      return CheckType<int, float, object, int>(ref _dense);
    }
 
    [Benchmark]
-   public bool IsT_OpenGeneric_Mismatch() {
-      return CheckIs<int, float, object, float>(ref _dense);
-   }
-
-   [Benchmark]
-   public bool IsIndex_OpenGeneric() {
-      return CheckIndex<int, float, object>(ref _dense, 1);
+   public bool HoldsType_OpenGeneric_Mismatch() {
+      return CheckType<int, float, object, float>(ref _dense);
    }
 
    [MethodImpl(MethodImplOptions.NoInlining)]
-   static bool CheckIs<T1, T2, T3, TQuery>(ref DenseCase<T1, T2, T3> union) {
-      return union.Is<TQuery>();
+   static bool CheckType<T1, T2, T3, TQuery>(ref DenseCase<T1, T2, T3> union) {
+      return union.HoldsType<TQuery>();
    }
 
-   [MethodImpl(MethodImplOptions.NoInlining)]
-   static bool CheckIndex<T1, T2, T3>(ref DenseCase<T1, T2, T3> union, byte index) {
-      return union.Is(index);
-   }
 }

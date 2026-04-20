@@ -231,14 +231,12 @@ partial class UnionImpl {
       }
       sb.AppendLine($$"""
          [{{_aggressiveInlining}}]
-         public{{ro}} bool Is<Tx>() => {{_indexField}} switch {
+         public{{ro}} bool HoldsType<Type>() => {{_indexField}} switch {
       """);
-      foreach (var e in entries) sb.AppendLine($"      {e.index} => typeof(Tx) == typeof({e.type}),");
+      foreach (var e in entries) sb.AppendLine($"      {e.index} => typeof(Type) == typeof({e.type}),");
       sb.AppendLine($$"""
             _ => false,
          };
-         [{{_aggressiveInlining}}]
-         public{{ro}} bool Is(byte typeIndex) => {{_indexField}} == typeIndex;
       """);
       if (ok.Mutable) {
          sb.AppendLine($$"""

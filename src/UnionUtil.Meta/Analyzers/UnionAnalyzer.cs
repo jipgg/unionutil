@@ -3,7 +3,7 @@ using System.Buffers;
 namespace UnionUtil.Meta.Analyzers;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed class AttributeAnalyzer : DiagnosticAnalyzer {
+public sealed class UnionAnalyzer : DiagnosticAnalyzer {
 
    static string MakeId(string name) => $"{nameof(UnionUtil)}_{name}";
 
@@ -39,27 +39,89 @@ public sealed class AttributeAnalyzer : DiagnosticAnalyzer {
       DiagnosticSeverity.Error,
       true
    );
-
+   static DiagnosticDescriptor WillNeverHoldType => new(
+      MakeId(nameof(WillNeverHoldType)),
+      "will never hold type",
+      "will never hold type '{0}'",
+      "Usage",
+      DiagnosticSeverity.Warning,
+      true
+   );
    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [
       MissingUnionImpl,
       MissingTypesMarker,
       BadTagEnumLength,
       MissingPartial,
+      WillNeverHoldType,
    ];
 
    public override void Initialize(AnalysisContext ctx) {
       ctx.EnableConcurrentExecution();
-      ctx.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
-      ctx.RegisterSyntaxNodeAction(AnalyzeDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.ClassDeclaration);
+      ctx.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze);
+      ctx.RegisterSyntaxNodeAction(UnionDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.ClassDeclaration);
+      ctx.RegisterSyntaxNodeAction(HoldsTypeMethod, SyntaxKind.InvocationExpression);
    }
    static bool IsUnionUtil(ITypeSymbol? symbol) {
       if (symbol is null) return false;
+      if (symbol.ContainingNamespace.IsGlobalNamespace) return false;
       return symbol.ContainingNamespace.ContainingNamespace.IsGlobalNamespace
-         && symbol.ContainingNamespace.MetadataName == "UnionUtil";
+         && symbol.ContainingNamespace?.MetadataName == "UnionUtil";
    }
    static bool IsUnionUtil(AttributeData? attributeData) => IsUnionUtil(attributeData?.AttributeClass);
+   static void HoldsTypeMethod(SyntaxNodeAnalysisContext ctx) {
+      var sm = ctx.SemanticModel;
+      var invocation = (InvocationExpressionSyntax)ctx.Node;
+      if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess) return;
+      if (memberAccess.Name.Identifier.Text is not "HoldsType") return;
+      if (sm.GetTypeInfo(memberAccess.Expression).Type is not INamedTypeSymbol symbol) return;
+      INamedTypeSymbol? @interface = null;
+      if (IsUnionUtil(symbol) && symbol.Name is "IUnion") {
+         @interface = symbol;
+      }
+      if (@interface is null) {
+         @interface = symbol.Interfaces
+            .Where(e => IsUnionUtil(e) && e.Name is "IUnion")
+            .FirstOrDefault();
+      }
+      if (@interface is null) return;
+      if (@interface.TypeArguments.OfType<ITypeParameterSymbol>().Any()) return;
+      switch (memberAccess.Name) {
+         case GenericNameSyntax syntax when syntax.Arity is 1:
+            var typeStx = syntax.TypeArgumentList.Arguments[0];
+            var type = sm.GetTypeInfo(typeStx).Type;
+            if (type is ITypeParameterSymbol or null) return;
+            foreach (var e in @interface.TypeArguments) {
+               if (e is ITypeParameterSymbol tp) {
+                  switch (tp) {
+                     case { HasValueTypeConstraint: true }:
+                        if (!type.IsValueType) continue;
+                        break;
+                     case { HasConstructorConstraint: true }:
+                        if (!type.IsValueType) continue;
+                        break;
+                     case { HasNotNullConstraint: true }:
+                        if (type.NullableAnnotation is NullableAnnotation.Annotated) continue;
+                        break;
+                     case { HasReferenceTypeConstraint: true }:
+                        if (!type.IsReferenceType) continue;
+                        break;
+                     case { HasUnmanagedTypeConstraint: true }:
+                        if (!type.IsUnmanagedType) continue;
+                        break;
+                     default:
+                        return;
+                  }
+               }
+               if (SymbolEqualityComparer.Default.Equals(type, e)) return;
+            }
+            ctx.ReportDiagnostic(Diagnostic.Create(WillNeverHoldType, typeStx.GetLocation(), type));
+            break;
+         default:
+            break;
+      }
+   }
    readonly record struct SymbolData(INamedTypeSymbol Sym, Location Loc);
-   static void AnalyzeDeclaration(SyntaxNodeAnalysisContext ctx) {
+   static void UnionDeclaration(SyntaxNodeAnalysisContext ctx) {
       var node = (TypeDeclarationSyntax)ctx.Node;
       var declaredSymbol = ctx.SemanticModel.GetDeclaredSymbol(ctx.Node, ctx.CancellationToken);
       if (declaredSymbol is not INamedTypeSymbol symbol) return;

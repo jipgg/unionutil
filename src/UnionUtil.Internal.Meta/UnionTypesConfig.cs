@@ -57,8 +57,7 @@ public sealed class UnionTypesConfig : IIncrementalGenerator {
          typeParams[typeParams.Length - 1] = '>';
          sb.AppendLine($$"""
             public interface I{{ok.Name}}{{typeParams}} {
-               bool Is<T>();
-               bool Is(byte typeIndex);
+               bool HoldsType<T>();
             """);
          for (int i = 1; i <= n; ++i) {
             sb.AppendLine($"""
