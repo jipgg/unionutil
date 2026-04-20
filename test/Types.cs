@@ -44,7 +44,6 @@ public partial struct BoxedResult<T> : IUnion<T, Exception> {
       return Unsafe.As<BoxedResult<T, Exception>, BoxedResult<T>>(ref result);
    }
 }
-
 [UnionImpl(Nullable = true, BoxOpenGenerics = true, FieldVisibility = Visibility.Internal), SmallBufferOptimized(23)]
 public partial struct Sbo23<T1, T2, T3> : IUnion<T1, T2, T3>;
 [UnionImpl(Nullable = true, BoxOpenGenerics = true, FieldVisibility = Visibility.Internal), SmallBufferOptimized(55)]

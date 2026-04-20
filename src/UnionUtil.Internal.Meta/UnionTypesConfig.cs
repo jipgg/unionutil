@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Collections.Immutable;
 using System.Diagnostics;
-namespace UnionUtil.Internal;
+namespace UnionUtil.Internal.Meta;
 
 [Generator(LanguageNames.CSharp)]
 public sealed class UnionTypesConfig : IIncrementalGenerator {

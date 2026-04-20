@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-namespace UnionUtil;
+namespace UnionUtil.Meta.Generators;
 
 [Generator(LanguageNames.CSharp)]
 public sealed partial class UnionImpl : IIncrementalGenerator {
@@ -12,7 +12,11 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
                   StructDeclarationSyntax { AttributeLists.Count: > 0 } => true,
                   _ => false,
                }, Resolve).Where(static t => t != default);
-      ctx.RegisterSourceOutput(provider, GenerateSource);
+      ctx.RegisterSourceOutput(provider, static (ctx, res) => {
+         var (ok, err) = res;
+         if (ok is null) return;
+         GenerateSource(ctx, ok);
+      });
    }
    enum Strategy { Box, Sequential, Overlap };
    enum Kind : byte { Unmanaged, Generic, Reference, Value, Interface };
@@ -67,11 +71,17 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
          return sb.ToString();
       }
    }
-   static (Resolved, Problem[]) Resolve(GeneratorAttributeSyntaxContext ctx, CancellationToken token) {
+   enum Unresolved {
+      Resolved = default,
+      MissingPartial,
+      MissingInterfaceToTagTypes,
+      LengthOfTaggedDoesNotMatchTypeCount,
+   }
+   static (Resolved?, Unresolved) Resolve(GeneratorAttributeSyntaxContext ctx, CancellationToken token) {
       if (ctx.TargetSymbol is not INamedTypeSymbol symbol) return default;
-      Problem[] problems = [];
-      void emitProblem(string message, Location? location = null, DiagnosticSeverity severity = DiagnosticSeverity.Error) {
-         problems = [.. problems, new(location ?? symbol.Locations.First(), message, severity)];
+      var node = (TypeDeclarationSyntax)ctx.TargetNode;
+      if (!node.Modifiers.Any(SyntaxKind.PartialKeyword)) {
+         return (null, Unresolved.MissingPartial);
       }
       var attr = ctx.Attributes[0];
       var symbolAttributes = symbol.GetAttributes();
@@ -123,12 +133,8 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
          .Where(e => e.AttributeClass?.Name is $"{unionTypesName}Attribute")
          .Select(e => e.AttributeClass)
          .FirstOrDefault();
-      if (unionTypes is null) {
-         emitProblem($"Missing '{unionTypesName} interface to tag types");
-         resolvedTypeArgs = [];
-         goto skip_resolving_union_types;
-      }
-   resolve_union_types:
+      if (unionTypes is null) return (null, Unresolved.MissingInterfaceToTagTypes);
+      resolve_union_types:
       var targs = unionTypes.TypeArguments;
       resolvedTypeArgs = new TypeArg[targs.Length];
       for (int i = 0; i < targs.Length; ++i) {
@@ -177,15 +183,12 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
          };
          resolvedTypeArgs[i] = new(index, name, kind, strategy);
       }
-   skip_resolving_union_types:
       Tagged? resolvedTagged = default;
       var tagged = symbol.GetAttributes()
          .Where(e => e.AttributeClass?.MetadataName is "TaggedAttribute`1")
          .SingleOrDefault();
       if (tagged is null) goto taggeds_done;
       var tag = tagged.AttributeClass!.TypeArguments[0];
-      // var members = tag.GetMembers()
-      //    .Where(static e => e.Kind == SymbolKind.Field);
       var members = tag.GetMembers()
          .OfType<IFieldSymbol>()
          .Where(static e => e.HasConstantValue)
@@ -199,8 +202,7 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
       }
       string[] names = [.. members.Select(static e => e.Name)];
       if (names.Length != resolvedTypeArgs?.Length) {
-         emitProblem($"length of tag enum is not the same as length of cases");
-         goto taggeds_done;
+         return (null, Unresolved.LengthOfTaggedDoesNotMatchTypeCount);
       }
       var tagName = (string)tagged.ConstructorArguments[0].Value!;
       var tagEnum = tag.ToDisplayString(Format);
@@ -225,7 +227,7 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
             _ => "private",
          },
          Sbo: sbo == default ? null : sbo
-      ), problems);
+      ), default);
    }
    static SymbolDisplayFormat Format =>
       SymbolDisplayFormat.FullyQualifiedFormat

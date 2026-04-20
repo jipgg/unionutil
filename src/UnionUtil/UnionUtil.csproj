@@ -16,8 +16,8 @@
   </PropertyGroup>
   <ItemGroup>
      <None Include="../../README.md" Pack="true" PackagePath="/" />
-     <ProjectReference Include="..\UnionUtil.Generators\UnionUtil.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-     <Content Include="..\UnionUtil.Generators\bin\$(Configuration)\netstandard2.0\UnionUtil.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs/" />
-     <ProjectReference Include="..\UnionUtil.Internal.Generators\UnionUtil.Internal.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+     <ProjectReference Include="..\UnionUtil.Meta\UnionUtil.Meta.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+     <Content Include="..\UnionUtil.Meta\bin\$(Configuration)\netstandard2.0\UnionUtil.Meta.dll" Pack="true" PackagePath="analyzers/dotnet/cs/" />
+     <ProjectReference Include="..\UnionUtil.Internal.Meta\UnionUtil.Internal.Meta.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>

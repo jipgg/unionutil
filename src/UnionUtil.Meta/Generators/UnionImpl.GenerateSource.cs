@@ -1,5 +1,5 @@
 using System.Diagnostics;
-namespace UnionUtil;
+namespace UnionUtil.Meta.Generators;
 
 partial class UnionImpl {
    const string _compilerServices = "global::System.Runtime.CompilerServices";
@@ -31,15 +31,7 @@ partial class UnionImpl {
    static string FieldName(in TypeArg e) {
       return $"_{e.index}";
    }
-   static void GenerateSource(SourceProductionContext ctx, (Resolved?, Problem[]) result) {
-      var (ok, err) = result;
-      if (err.Length > 0) {
-         foreach (var e in err) {
-            var diag = Diagnostic.Create(Descriptor, e.Location, e.Message);
-            ctx.ReportDiagnostic(diag);
-         }
-         return;
-      }
+   static void GenerateSource(SourceProductionContext ctx, Resolved ok) {
       var sb = new StringBuilder(2048);
       sb.AppendLine("#nullable enable");
       if (ok!.Name.Namespace is string ns) {
