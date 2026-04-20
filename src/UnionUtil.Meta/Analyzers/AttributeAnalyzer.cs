@@ -15,14 +15,6 @@ public sealed class AttributeAnalyzer : DiagnosticAnalyzer {
       DiagnosticSeverity.Warning,
       true
    );
-   static DiagnosticDescriptor TypesAlreadyMarked => new(
-      MakeId(nameof(TypesAlreadyMarked)),
-      "types already marked",
-      "types already marked by '{0}'",
-      "Usage",
-      DiagnosticSeverity.Warning,
-      true
-   );
    static DiagnosticDescriptor MissingTypesMarker => new(
       MakeId((nameof(MissingTypesMarker))),
       "missing types marker",
@@ -50,7 +42,6 @@ public sealed class AttributeAnalyzer : DiagnosticAnalyzer {
 
    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [
       MissingUnionImpl,
-      TypesAlreadyMarked,
       MissingTypesMarker,
       BadTagEnumLength,
       MissingPartial,
@@ -80,20 +71,11 @@ public sealed class AttributeAnalyzer : DiagnosticAnalyzer {
       SymbolData? taggedSymbol = null;
       SymbolData? sboSymbol = null;
       SymbolData? unionSymbol = null;
-      bool assignUnionChecked(INamedTypeSymbol symbol, Location loc) {
-         if (unionSymbol is SymbolData sd) {
-            var d = Diagnostic.Create(TypesAlreadyMarked, loc, sd.Sym.ToDisplayString());
-            ctx.ReportDiagnostic(d);
-            return false;
-         }
-         unionSymbol = new(symbol, loc);
-         return true;
-      }
       foreach (var e in interfaces) {
          if (e.Name is not "IUnion") continue;
          var loc = e.DeclaringSyntaxReferences.FirstOrDefault()?
             .GetSyntax(ctx.CancellationToken).GetLocation() ?? symbol.Locations.First();
-         assignUnionChecked(e, loc);
+         unionSymbol = new(e, loc);
       }
       foreach (var e in attributes) {
          var loc = e.ApplicationSyntaxReference?
@@ -110,7 +92,7 @@ public sealed class AttributeAnalyzer : DiagnosticAnalyzer {
                sboSymbol = new(e.AttributeClass, loc);
                break;
             case "UnionAttribute":
-               assignUnionChecked(e.AttributeClass, loc);
+               unionSymbol = new(e.AttributeClass, loc);
                break;
          }
       }
@@ -125,7 +107,7 @@ public sealed class AttributeAnalyzer : DiagnosticAnalyzer {
       return;
    unionimpl_not_null:
       if (!node.Modifiers.Any(SyntaxKind.PartialKeyword)) {
-         ctx.ReportDiagnostic(Diagnostic.Create(MissingPartial, node.GetLocation()));
+         ctx.ReportDiagnostic(Diagnostic.Create(MissingPartial, symbol.Locations.First()));
       }
       if (unionSymbol is null) {
          ctx.ReportDiagnostic(Diagnostic.Create(MissingTypesMarker, impl.Loc));

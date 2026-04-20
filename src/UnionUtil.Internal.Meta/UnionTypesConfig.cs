@@ -39,7 +39,7 @@ public sealed class UnionTypesConfig : IIncrementalGenerator {
    }
 
    static void GenerateSource(SourceProductionContext ctx, Resolved ok) {
-      const string T = "TCase";
+      const string T = "T";
       var typeParamsLength = ok.Arity * $"{T}X,".Length + 2;
       var sb = new StringBuilder(1024);
       sb.AppendLine("#nullable enable");
@@ -50,11 +50,22 @@ public sealed class UnionTypesConfig : IIncrementalGenerator {
       var typeParams = new StringBuilder(typeParamsLength);
       for (int n = 1; n <= ok.Arity; ++n) {
          typeParams.Append('<');
+         static string ty(int i) => $"{T}{i}";
          for (int i = 1; i <= n; ++i) {
-            typeParams.Append($"{T}{i},");
+            typeParams.Append($"{ty(i)},");
          }
          typeParams[typeParams.Length - 1] = '>';
-         sb.AppendLine($"public interface I{ok.Name}{typeParams};"); ;
+         sb.AppendLine($$"""
+            public interface I{{ok.Name}}{{typeParams}} {
+               bool Is<T>();
+               bool Is(byte typeIndex);
+            """);
+         for (int i = 1; i <= n; ++i) {
+            sb.AppendLine($"""
+               bool TryGetValue(out {ty(i)} value);
+            """);
+         }
+         sb.AppendLine("}");
          if (ok.SkipAttributes) goto next;
          const string system = "global::System";
          const string attributeUsage = $"[{system}.AttributeUsage({system}.AttributeTargets.Struct | {system}.AttributeTargets.Class, AllowMultiple = false)]";

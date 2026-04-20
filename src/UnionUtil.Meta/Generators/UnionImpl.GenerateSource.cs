@@ -17,6 +17,7 @@ partial class UnionImpl {
    const string _interopServices = "global::System.Runtime.InteropServices";
    const string _invalidOperationException = "global::System.InvalidOperationException";
    const string _unionUtil = "global::UnionUtil";
+   const string _iUnion = $"{_unionUtil}.IUnion";
 
    static class GenericHelpers {
       const string prefix = $"global::UnionUtil.OpenGenericHelpers";
@@ -51,8 +52,10 @@ partial class UnionImpl {
          default:
             throw new InvalidOperationException();
       }
-      sb.Append(ok.Name.GenericName()).AppendLine(" {");
       var entries = ok.TypeArgs.entries;
+      sb.Append(ok.Name.GenericName()).Append(" : ");
+      sb.Append($"{_iUnion}<{string.Join(",", entries.Select(e => e.type))}>");
+      sb.AppendLine(" {");
       var visibility = ok.Visibility;
       var readonlyFieldMod = ok.Mutable ? " " : " readonly";
       var lref = $"{(ok.Mutable ? "ref " : " ")}";
@@ -129,7 +132,7 @@ partial class UnionImpl {
       if (sboEnabled) {
          var size = ok.Sbo!.Value.Size;
          TSbo = ok.Sbo switch {
-            {TypeName: string tn} => tn,
+            { TypeName: string tn } => tn,
             { Size: 7 or 15 or 23 } => $"{_unionUtil}.SmallBuffer{size}",
             _ => _fallbackSboType,
          };

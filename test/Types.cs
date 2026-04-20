@@ -56,7 +56,6 @@ public partial struct Sbo15<T1, T2, T3> : IUnion<T1, T2, T3>;
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized<SBO7>]
 public partial struct Sbo7<T1, T2, T3> : IUnion<T1, T2, T3>;
-
 [InlineArray(7)]
 public struct SBO7: ISmallBuffer {
    byte _element0;

@@ -18,4 +18,3 @@ readonly partial struct ReadonlyStruct<T, U> : IUnion<T, U>;
 
 [UnionImpl]
 readonly partial struct ReadonlyStructSequential<T, U> : IUnion<T, U>;
-
