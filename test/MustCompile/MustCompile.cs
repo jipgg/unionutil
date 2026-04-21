@@ -1,5 +1,6 @@
 ﻿using UnionUtil;
 namespace Test.MustCompile;
+using static UnionImplOptions;
 
 [UnionImpl(
    FieldVisibility = Visibility.Public
@@ -7,13 +8,13 @@ namespace Test.MustCompile;
 sealed partial class SealedClass : IUnion<int, float, object, List<object>>;
 
 
-[UnionImpl(ReadOnly = true), Union<int, float>]
+[UnionImpl(ReadOnly), Union<int, float>]
 partial struct ReadonlyStruct;
 
-[UnionImpl(BoxOpenGenerics = true), SmallBufferOptimized]
+[UnionImpl(BoxOpenGenerics), SmallBufferOptimized]
 readonly partial struct ReadonlyStructSbo<T, U> : IUnion<T, U>;
 
-[UnionImpl(BoxOpenGenerics = true)]
+[UnionImpl(BoxOpenGenerics)]
 readonly partial struct ReadonlyStruct<T, U> : IUnion<T, U>;
 
 [UnionImpl]

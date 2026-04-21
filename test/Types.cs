@@ -3,6 +3,7 @@ using UnionUtil;
 namespace Test;
 
 using static MethodImplOptions;
+using static UnionImplOptions;
 
 public enum Result { Ok, Err }
 
@@ -25,16 +26,14 @@ public partial struct Result<T> : IUnion<T, Exception> {
 }
 
 [Tagged<Result>, UnionImpl(
-   FieldVisibility = Visibility.Internal,
-   BoxManagedStructs = true,
-   BoxOpenGenerics = true
+   BoxManagedStructs | BoxOpenGenerics,
+   FieldVisibility = Visibility.Internal
 )]
 public partial struct BoxedResult<T, E> : IUnion<T, E> where E : Exception;
 
 [Tagged<Result>, UnionImpl(
-      FieldVisibility = Visibility.Internal,
-      BoxManagedStructs = true,
-      BoxOpenGenerics = true
+      BoxManagedStructs | BoxOpenGenerics,
+      FieldVisibility = Visibility.Internal
 )]
 public partial struct BoxedResult<T> : IUnion<T, Exception> {
    [MethodImpl(AggressiveInlining)]
@@ -46,15 +45,13 @@ public partial struct BoxedResult<T> : IUnion<T, Exception> {
       return Unsafe.As<BoxedResult<T, Exception>, BoxedResult<T>>(ref result);
    }
 }
-[UnionImpl(Nullable = true, BoxOpenGenerics = true, FieldVisibility = Visibility.Internal), SmallBufferOptimized(23)]
+[UnionImpl(Nullable | BoxOpenGenerics, FieldVisibility = Visibility.Internal), SmallBufferOptimized(23)]
 public partial struct Sbo23<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable = true, BoxOpenGenerics = true, FieldVisibility = Visibility.Internal), SmallBufferOptimized(55)]
+[UnionImpl(Nullable | BoxOpenGenerics, FieldVisibility = Visibility.Internal), SmallBufferOptimized(55)]
 public partial struct Sbo55<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable = true, BoxOpenGenerics = true, FieldVisibility = Visibility.Internal), SmallBufferOptimized(15)]
+[UnionImpl(Nullable | BoxOpenGenerics, FieldVisibility = Visibility.Internal), SmallBufferOptimized(15)]
 public partial struct Sbo15<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(
-   Nullable = true,
-   BoxOpenGenerics = true,
+[UnionImpl(Nullable | BoxOpenGenerics,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized<SBO7>]
 public partial struct Sbo7<T1, T2, T3> : IUnion<T1, T2, T3>;

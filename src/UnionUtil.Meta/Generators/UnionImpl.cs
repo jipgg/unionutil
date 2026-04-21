@@ -22,12 +22,12 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
    enum Kind : byte { Unmanaged, Generic, Reference, Value, Interface };
    readonly record struct Sbo(uint Size, string? TypeName);
    sealed record Resolved(
+      UnionImplOptions Opts,
       TypeArgs TypeArgs,
       Name Name,
       SyntaxKind Kind,
       bool Mutable,
       string Visibility,
-      bool Nullable,
       Tagged? Tagged,
       Sbo? Sbo
    );
@@ -85,9 +85,10 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
       }
       var attr = ctx.Attributes[0];
       var symbolAttributes = symbol.GetAttributes();
-      var boxGenerics = attr.Named<bool?>("BoxOpenGenerics") ?? false;
-      var boxStructs = attr.Named<bool?>("BoxManagedStructs") ?? false;
-      var mutable = !attr.Named<bool?>("ReadOnly");
+      var opts = (UnionImplOptions)attr.ConstructorArguments[0].Value!;
+      var boxGenerics = opts.HasFlag(UnionImplOptions.BoxOpenGenerics);
+      var boxStructs = opts.HasFlag(UnionImplOptions.BoxManagedStructs);
+      bool? mutable = opts.HasFlag(UnionImplOptions.ReadOnly) ? false : null;
       const string sboAttr = "SmallBufferOptimizedAttribute";
       Sbo sbo = default;
       var sboType = symbolAttributes
@@ -210,6 +211,7 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
    taggeds_done:
       var ns = symbol.ContainingNamespace;
       return (new Resolved(
+         Opts: opts,
          TypeArgs: new(entries: resolvedTypeArgs ?? throw new("resolvedTypes is null")),
          Name: new(
             Namespace: ns.IsGlobalNamespace ? null : ns.ToDisplayString(),
@@ -218,7 +220,6 @@ public sealed partial class UnionImpl : IIncrementalGenerator {
          ),
          Kind: ctx.TargetNode.Kind(),
          Mutable: mutable.Value,
-         Nullable: attr.Named<bool?>("Nullable") ?? false,
          Tagged: resolvedTagged,
          Visibility: attr.Named<int?>("FieldVisibility") switch {
             1 => "internal",

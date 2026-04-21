@@ -16,4 +16,7 @@
     <PrivateAssets>all</PrivateAssets>
   </PackageReference>
 </ItemGroup>
+<ItemGroup>
+  <Compile Include="../include/**/*.cs" />
+</ItemGroup>
 </Project>

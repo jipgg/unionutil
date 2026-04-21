@@ -1,5 +1,6 @@
 using System.Diagnostics;
 namespace UnionUtil.Meta.Generators;
+using Opts = UnionImplOptions;
 
 partial class UnionImpl {
    const string _compilerServices = "global::System.Runtime.CompilerServices";
@@ -52,6 +53,7 @@ partial class UnionImpl {
          default:
             throw new InvalidOperationException();
       }
+      var isNullable = ok.Opts.HasFlag(Opts.Nullable);
       var entries = ok.TypeArgs.entries;
       sb.Append(ok.Name.GenericName()).Append(" : ");
       sb.Append($"{_iUnion}<{string.Join(",", entries.Select(e => e.type))}>");
@@ -69,6 +71,7 @@ partial class UnionImpl {
                {{_indexField}} = {{arg.index}};
             }
          """);
+         if (ok.Opts.HasFlag(UnionImplOptions.NoImplicitConversions)) return;
          if (arg.kind is not Kind.Interface) sb.AppendLine($$"""
             [{{_aggressiveInlining}}]
             public static implicit operator {{ok.Name.GenericName()}}({{arg.type}} v) => new(v);
@@ -89,6 +92,7 @@ partial class UnionImpl {
          """);
       }
       void writeSetValue(in TypeArg arg, string assign) {
+         if (ok.Opts.HasFlag(UnionImplOptions.ReadOnly)) return;
          if (ok.Mutable is false) return;
          sb.AppendLine($$"""
             [{{_aggressiveInlining}}]
@@ -220,13 +224,14 @@ partial class UnionImpl {
          writeProperties(e, holder);
       }
    skip_sequential:
-      var obj = ok.Nullable ? "object?" : "object";
+      var nullable = ok.Opts.HasFlag(Opts.Nullable);
+      var obj = nullable ? "object?" : "object";
       sb.AppendLine($"  public{ro} {obj} Value => {_indexField} switch {{");
       foreach (var e in getValueExprs) sb.AppendLine($"    {e.Item1} => {e.Item2}!,");
-      if (ok.Nullable) sb.AppendLine($"    0 => null,");
-      sb.AppendLine($"    _ => throw new global::System.InvalidOperationException($\"type index was {{{_indexField}}}\")");
+      if (nullable) sb.AppendLine($"    _ => null,");
+      else sb.AppendLine($"    _ => throw new global::System.InvalidOperationException($\"type index was {{{_indexField}}}\")");
       sb.AppendLine("  };");
-      if (ok.Nullable) {
+      if (nullable) {
          sb.AppendLine($"  public{ro} bool HasValue => {_indexField} != 0;");
       }
       sb.AppendLine($$"""
@@ -264,7 +269,7 @@ partial class UnionImpl {
       if (ok.Tagged is not { } tagged || tagged.Enum is not { } @enum) {
          goto tag_getter_done;
       }
-      if (ok.Nullable) @enum += "?";
+      if (isNullable) @enum += "?";
 
       sb.AppendLine($$"""
          public{{ro}} {{@enum}} {{tagged.Name}} {
@@ -272,7 +277,7 @@ partial class UnionImpl {
       """);
       if (tagged.Dense) {
          var expr = $"(({@enum}){_indexField} - 1)";
-         if (ok.Nullable) expr = $"{_indexField} is 0 ? null : {expr}";
+         if (isNullable) expr = $"{_indexField} is 0 ? null : {expr}";
          sb.AppendLine($$"""
                get => {{expr}};
             }
@@ -285,7 +290,7 @@ partial class UnionImpl {
       foreach (var e in entries) sb.AppendLine($$"""
                {{e.index}} => {{tagged.Enum}}.{{tagged[e]}},
       """);
-      if (ok.Nullable) sb.AppendLine($"""
+      if (isNullable) sb.AppendLine($"""
                0 => null,
       """);
       var genericName = ok.Name.GenericName();

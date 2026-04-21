@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Order;
+using Opts = UnionUtil.UnionImplOptions;
 public readonly record struct _1B(byte X);
 public readonly record struct _4B(int X);
 public readonly record struct _8B(long X);
@@ -197,40 +198,40 @@ public class InitMatchAssignReturn<T> where T : notnull {
    }
 }
 public enum Tag { X1, X2, X3 }
-[Tagged<Tag>, UnionImpl(Nullable = true)]
+[Tagged<Tag>, UnionImpl(Opts.Nullable)]
 public partial struct SequentialTagged<T1, T2, T3> : IUnion<T1, T2, T3>;
-[Tagged<Tag>, UnionImpl(Nullable = true, BoxOpenGenerics = true, BoxManagedStructs = true)]
+[Tagged<Tag>, UnionImpl(Opts.Nullable | Opts.BoxOpenGenerics | Opts.BoxManagedStructs)]
 public partial struct BoxedTagged<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable = true)]
+[UnionImpl(Opts.Nullable)]
 public readonly partial struct ReadOnlyGeneratedSequential<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable = true)]
+[UnionImpl(Opts.Nullable)]
 public partial struct Sequential<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable = true, BoxOpenGenerics = true, BoxManagedStructs = true)]
+[UnionImpl(Opts.Nullable | Opts.BoxOpenGenerics | Opts.BoxManagedStructs)]
 public partial struct Boxed<T1, T2, T3> : IUnion<T1, T2, T3>;
 
-[UnionImpl(Nullable = true)]
+[UnionImpl(Opts.Nullable)]
 public partial struct GeneratedWhereClass<T1, T2, T3> : IUnion<T1, T2, T3>
 where T1 : class where T2 : class where T3 : class;
 
-[UnionImpl(Nullable = true, BoxOpenGenerics = true), SmallBufferOptimized(80)]
+[UnionImpl(Opts.Nullable | Opts.BoxOpenGenerics), SmallBufferOptimized(80)]
 public sealed partial class Sbo80Class<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable = true, BoxOpenGenerics = true), SmallBufferOptimized(55)]
+[UnionImpl(Opts.Nullable | Opts.BoxOpenGenerics), SmallBufferOptimized(55)]
 public sealed partial class Sbo55Class<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable = true, BoxOpenGenerics = true), SmallBufferOptimized(31)]
+[UnionImpl(Opts.Nullable | Opts.BoxOpenGenerics), SmallBufferOptimized(31)]
 public sealed partial class Sbo31Class<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable = true, BoxOpenGenerics = true), SmallBufferOptimized(31)]
+[UnionImpl(Opts.Nullable | Opts.BoxOpenGenerics), SmallBufferOptimized(31)]
 public partial struct Sbo31<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable = true, BoxOpenGenerics = true), SmallBufferOptimized(7)]
+[UnionImpl(Opts.Nullable | Opts.BoxOpenGenerics), SmallBufferOptimized(7)]
 public partial struct Sbo7<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable = true, BoxOpenGenerics = true), SmallBufferOptimized(15)]
+[UnionImpl(Opts.Nullable | Opts.BoxOpenGenerics), SmallBufferOptimized(15)]
 public partial struct Sbo15<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable = true, BoxOpenGenerics = true), SmallBufferOptimized(23)]
+[UnionImpl(Opts.Nullable | Opts.BoxOpenGenerics), SmallBufferOptimized(23)]
 public partial struct Sbo23<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable = true, BoxOpenGenerics = true), SmallBufferOptimized(23)]
+[UnionImpl(Opts.Nullable | Opts.BoxOpenGenerics), SmallBufferOptimized(23)]
 public sealed partial class Sbo23Class<T1, T2, T3> : IUnion<T1, T2, T3>;
 
 public readonly record struct Something(int Int, double Double, long Long, ulong Ulong);
-[UnionImpl(Nullable = true), Union<int, double, Something>]
+[UnionImpl(Opts.Nullable), Union<int, double, Something>]
 public partial struct GeneratedStatically;
 
 public readonly struct UnionBaseline<T1, T2, T3> {

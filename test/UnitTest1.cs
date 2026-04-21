@@ -6,11 +6,12 @@ namespace Test;
 
 using static Result;
 using static MutableTag;
+using static UnionImplOptions;
 
 public enum MutableTag { Int = 9, Double = 1, Vector3 = -3 }
 
 [Tagged<MutableTag>]
-[UnionImpl(Nullable = true)]
+[UnionImpl(Nullable)]
 [Union<int, double, Vector3>]
 partial struct MutableStruct;
 

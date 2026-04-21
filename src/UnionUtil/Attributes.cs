@@ -6,16 +6,11 @@ namespace UnionUtil;
 [AttributeUsage(AttributeTargets.Assembly)]
 sealed class UnionTypesConfigAttribute(int arity, string? @namespace, string name) : Attribute;
 
-public enum Visibility : int { Private = 0, Internal = 1, Public = 2 }
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 public sealed class TaggedAttribute<Tag>(string propertyName = "Tag") : Attribute where Tag : struct, Enum;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
-public sealed class UnionImplAttribute : Attribute {
-   public bool BoxOpenGenerics { get; init; }
-   public bool BoxManagedStructs { get; init; }
-   public bool Nullable { get; init; }
-   public bool ReadOnly { get; init; }
+public sealed class UnionImplAttribute(UnionImplOptions options = UnionImplOptions.Default) : Attribute {
    public Visibility FieldVisibility { get; init; }
 }
 
