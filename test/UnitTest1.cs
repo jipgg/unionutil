@@ -70,29 +70,35 @@ public class MutableStructTests {
       };
       Assert.Equal("abc", x);
    }
+   static void TestNonExhaustive<TUnion, T>(TUnion u, T v) where TUnion: IUnion where T: IEquatable<T> {
+      Assert.True(u.TryGetValue(out T x));
+      Assert.Equal(v, x);
+   }
    [Fact]
    public void SBOWorks() {
       Sbo23<int, double, Exception> sbo23 = 0.5;
-      Union<int, double, Exception> x = 0.5;
-      var e = (double)x;
+      TestNonExhaustive(sbo23, 0.5);
       Assert.Equal(32, Unsafe.SizeOf<Sbo23<int, double, Exception>>());
       Assert.Null(sbo23._box);
       Assert.Equal(0.5, Unsafe.As<byte, double>(ref sbo23._sbo.Data));
       Assert.Equal(2, sbo23._index);
 
       Sbo55<int, double, Exception> sbo55 = 0.5;
+      TestNonExhaustive(sbo55, 0.5);
       Assert.Equal(64, Unsafe.SizeOf<Sbo55<int, double, Exception>>());
       Assert.Null(sbo55._box);
       Assert.Equal(0.5, Unsafe.As<byte, double>(ref sbo55._sbo.Data));
       Assert.Equal(2, sbo55._index);
 
       Sbo15<int, double, Exception> sbo15 = 0.5;
+      TestNonExhaustive(sbo15, 0.5);
       Assert.Equal(24, Unsafe.SizeOf<Sbo15<int, double, Exception>>());
       Assert.Null(sbo15._box);
       Assert.Equal(0.5, Unsafe.As<byte, double>(ref sbo15._sbo.Data));
       Assert.Equal(2, sbo15._index);
 
       Sbo7<int, double, Exception> sbo7 = 0.5;
+      TestNonExhaustive(sbo7, 0.5);
       Assert.Equal(16, Unsafe.SizeOf<Sbo7<int, double, Exception>>());
       Assert.NotNull(sbo7._box);
       Assert.True(sbo7.HoldsType<double>());

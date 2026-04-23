@@ -47,6 +47,11 @@ public sealed class UnionTypesConfigGenerator : IIncrementalGenerator {
       if (ok.Namespace is string ns) {
          sb.AppendLine($"namespace {ns};");
       }
+      sb.AppendLine($$"""
+      public interface I{{ok.Name}} {
+         bool TryGetValue<T>(out T value);
+      }
+      """);
       var typeParams = new StringBuilder(typeParamsLength);
       for (int n = 1; n <= ok.Arity; ++n) {
          typeParams.Append('<');

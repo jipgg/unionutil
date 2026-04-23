@@ -132,6 +132,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       SymbolData? unionSymbol = null;
       foreach (var e in interfaces) {
          if (e.Name is not "IUnion") continue;
+         if (e.Arity is 0) continue;
          var loc = e.DeclaringSyntaxReferences.FirstOrDefault()?
             .GetSyntax(ctx.CancellationToken).GetLocation() ?? symbol.Locations.First();
          unionSymbol = new(e, loc);

@@ -250,7 +250,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
       }
       var entries = args.StorageTypes.Entries;
       sb.Append(args.T).Append(" : ");
-      sb.Append($"{iUnion}<{string.Join(",", entries.Select(e => e.TypeName))}>");
+      sb.Append($"{iUnion}<{string.Join(",", entries.Select(e => e.TypeName))}>, {iUnion}");
       sb.AppendLine(" {");
       var visibility = args.FieldVisibility.Keyword;
       var readonlyFieldMod = isReadOnly ? " readonly" : " ";
@@ -499,6 +499,26 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          }
       """);
    skip_tag_property:
+      sb.AppendLine($$"""
+            [{{aggressiveInlining}}]
+            bool {{iUnion}}.TryGetValue<Type>(out Type value) {
+               switch ({{indexField}}) {
+         """);
+      foreach (var e in entries) {
+         sb.AppendLine($$"""
+                  case {{e.TypeIndex}}:
+                     if (typeof(Type) != typeof({{e.TypeName}})) goto default;
+                     value = default!;
+                     return TryGetValue(out {{@unsafe}}.As<Type, {{e.TypeName}}>(ref value));
+         """);
+      }
+      sb.AppendLine($$"""
+                  default:
+                     value = default!;
+                     return false;
+               }
+            }
+         """);
       sb.Append('}');
       var hintName = args.T;
       if (args.Namespace is not null) hintName = $"{args.Namespace}.{args.T}.g";
