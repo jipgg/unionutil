@@ -11,7 +11,7 @@ using static UnionImplOptions;
 public enum MutableTag { Int = 9, Double = 1, Vector3 = -3 }
 
 [Tagged<MutableTag>]
-[UnionImpl(Nullable)]
+[UnionImpl(NullableEnabled)]
 [Union<int, double, Vector3>]
 partial struct MutableStruct;
 
@@ -70,11 +70,11 @@ public class MutableStructTests {
       };
       Assert.Equal("abc", x);
    }
-   static void Constraint<T>() where T: class {
-   }
    [Fact]
    public void SBOWorks() {
       Sbo23<int, double, Exception> sbo23 = 0.5;
+      Union<int, double, Exception> x = 0.5;
+      var e = (double)x;
       Assert.Equal(32, Unsafe.SizeOf<Sbo23<int, double, Exception>>());
       Assert.Null(sbo23._box);
       Assert.Equal(0.5, Unsafe.As<byte, double>(ref sbo23._sbo.Data));

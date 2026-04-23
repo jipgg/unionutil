@@ -26,13 +26,13 @@ public partial struct Result<T> : IUnion<T, Exception> {
 }
 
 [Tagged<Result>, UnionImpl(
-   BoxManagedStructs | BoxOpenGenerics,
+   BoxManagedStructs | BoxOpenGenerics | IncludeHoldsTypeMethod,
    FieldVisibility = Visibility.Internal
 )]
 public partial struct BoxedResult<T, E> : IUnion<T, E> where E : Exception;
 
 [Tagged<Result>, UnionImpl(
-      BoxManagedStructs | BoxOpenGenerics,
+      BoxManagedStructs | BoxOpenGenerics | IncludeHoldsTypeMethod,
       FieldVisibility = Visibility.Internal
 )]
 public partial struct BoxedResult<T> : IUnion<T, Exception> {
@@ -45,18 +45,27 @@ public partial struct BoxedResult<T> : IUnion<T, Exception> {
       return Unsafe.As<BoxedResult<T, Exception>, BoxedResult<T>>(ref result);
    }
 }
-[UnionImpl(Nullable | BoxOpenGenerics, FieldVisibility = Visibility.Internal), SmallBufferOptimized(23)]
+[UnionImpl(
+   NullableEnabled | BoxOpenGenerics | IncludeHoldsTypeMethod,
+   FieldVisibility = Visibility.Internal
+), SmallBufferOptimized(23)]
 public partial struct Sbo23<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable | BoxOpenGenerics, FieldVisibility = Visibility.Internal), SmallBufferOptimized(55)]
+[UnionImpl(
+   NullableEnabled | BoxOpenGenerics | IncludeHoldsTypeMethod,
+   FieldVisibility = Visibility.Internal
+), SmallBufferOptimized(55)]
 public partial struct Sbo55<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable | BoxOpenGenerics, FieldVisibility = Visibility.Internal), SmallBufferOptimized(15)]
+[UnionImpl(
+   NullableEnabled | BoxOpenGenerics | IncludeHoldsTypeMethod,
+   FieldVisibility = Visibility.Internal
+), SmallBufferOptimized(15)]
 public partial struct Sbo15<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(Nullable | BoxOpenGenerics,
+[UnionImpl(NullableEnabled | BoxOpenGenerics | IncludeHoldsTypeMethod,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized<SBO7>]
 public partial struct Sbo7<T1, T2, T3> : IUnion<T1, T2, T3>;
 [InlineArray(7)]
-public struct SBO7: ISmallBuffer {
+public struct SBO7 : ISmallBuffer {
    byte _element0;
 
    public static int Size {

@@ -4,7 +4,7 @@ using System.Diagnostics;
 namespace UnionUtil.Internal.Meta;
 
 [Generator(LanguageNames.CSharp)]
-public sealed class UnionTypesConfig : IIncrementalGenerator {
+public sealed class UnionTypesConfigGenerator : IIncrementalGenerator {
    public void Initialize(IncrementalGeneratorInitializationContext ctx) {
       ctx.RegisterSourceOutput(
          ctx.CompilationProvider.Select(Resolve),
@@ -57,7 +57,6 @@ public sealed class UnionTypesConfig : IIncrementalGenerator {
          typeParams[typeParams.Length - 1] = '>';
          sb.AppendLine($$"""
             public interface I{{ok.Name}}{{typeParams}} {
-               bool HoldsType<T>();
             """);
          for (int i = 1; i <= n; ++i) {
             sb.AppendLine($"""

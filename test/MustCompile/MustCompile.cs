@@ -8,7 +8,7 @@ using static UnionImplOptions;
 sealed partial class SealedClass : IUnion<int, float, object, List<object>>;
 
 
-[UnionImpl(ReadOnly), Union<int, float>]
+[UnionImpl(ReadOnlyEnabled), Union<int, float>]
 partial struct ReadonlyStruct;
 
 [UnionImpl(BoxOpenGenerics), SmallBufferOptimized]

@@ -15,7 +15,7 @@
      <RepositoryUrl>https://github.com/jipgg/unionutil</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
-     <Compile Include="../include/**/*.cs" />
+     <Compile Include="../shared/**/*.cs" />
      <None Include="../../README.md" Pack="true" PackagePath="/" />
      <ProjectReference Include="..\UnionUtil.Meta\UnionUtil.Meta.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
      <Content Include="..\UnionUtil.Meta\bin\$(Configuration)\netstandard2.0\UnionUtil.Meta.dll" Pack="true" PackagePath="analyzers/dotnet/cs/" />

@@ -1,11 +1,55 @@
 using System.Runtime.CompilerServices;
 using System.Buffers;
-namespace UnionUtil.Meta.Analyzers;
-using static Diagnostics;
+namespace UnionUtil.Meta;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class UnionAnalyzer : DiagnosticAnalyzer {
-
+   public override void Initialize(AnalysisContext ctx) {
+      ctx.EnableConcurrentExecution();
+      ctx.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze);
+      ctx.RegisterSyntaxNodeAction(UnionDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.ClassDeclaration);
+      ctx.RegisterSyntaxNodeAction(HoldsTypeMethod, SyntaxKind.InvocationExpression);
+   }
+   static DiagnosticDescriptor MissingUnionImpl => new(
+      $"{nameof(MissingUnionImpl)}",
+      "missing UnionImpl marker",
+      "'{0}' does nothing without marking with 'UnionUtil.UnionImplAttribute'",
+      "UnionUtil",
+      DiagnosticSeverity.Warning,
+      true
+   );
+   static DiagnosticDescriptor MissingTypesMarker => new(
+      $"{nameof(MissingTypesMarker)}",
+      "missing types marker",
+      "types must be marked with 'IUnion<...T>' or 'UnionAttribute<...T>'",
+      "UnionUtil",
+      DiagnosticSeverity.Error,
+      true
+   );
+   static DiagnosticDescriptor BadTagEnumLength => new(
+      $"{nameof(BadTagEnumLength)}",
+      "bad tag enum length",
+      "length of '{0}' does not match type count of '{1}'",
+      "UnionUtil",
+      DiagnosticSeverity.Error,
+      true
+   );
+   static DiagnosticDescriptor MissingPartialKeyword => new(
+      $"{nameof(MissingPartialKeyword)}",
+      "missing partial keyword",
+      "type is missing partial specifier",
+      "UnionUtil",
+      DiagnosticSeverity.Warning,
+      true
+   );
+   static DiagnosticDescriptor WillNeverHoldType => new(
+      $"{nameof(WillNeverHoldType)}",
+      "will never hold type",
+      "will never hold type '{0}'",
+      "UnionUtil",
+      DiagnosticSeverity.Warning,
+      true
+   );
    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [
       MissingUnionImpl,
       MissingTypesMarker,
@@ -14,12 +58,6 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       WillNeverHoldType,
    ];
 
-   public override void Initialize(AnalysisContext ctx) {
-      ctx.EnableConcurrentExecution();
-      ctx.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze);
-      ctx.RegisterSyntaxNodeAction(UnionDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.ClassDeclaration);
-      ctx.RegisterSyntaxNodeAction(HoldsTypeMethod, SyntaxKind.InvocationExpression);
-   }
    static bool IsUnionUtil(ITypeSymbol? symbol) {
       if (symbol is null) return false;
       if (symbol.ContainingNamespace.IsGlobalNamespace) return false;

@@ -1,4 +1,5 @@
 BenchmarkDotNet.Artifacts/
+**/.idea/
 **/out/
 **/bin/
 **/obj/

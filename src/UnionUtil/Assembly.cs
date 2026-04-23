@@ -1,3 +1,8 @@
+#pragma warning disable CS9113
 using UnionUtil;
+using static UnionUtil.Meta.Configuration;
 
-[assembly: UnionTypesConfig(16, nameof(UnionUtil), "Union")]
+[assembly: UnionTypesConfig(UnionType.Arity, nameof(UnionUtil), UnionType.Name)]
+
+[AttributeUsage(AttributeTargets.Assembly)]
+sealed class UnionTypesConfigAttribute(int arity, string? @namespace, string name) : Attribute;

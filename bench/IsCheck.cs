@@ -1,10 +1,16 @@
 
 public enum DenseCaseTag { T1, T2, T3 }
-[UnionImpl(FieldVisibility = Visibility.Internal), Tagged<DenseCaseTag>]
+[UnionImpl(
+   UnionImplOptions.IncludeHoldsTypeMethod,
+   FieldVisibility = Visibility.Internal),
+   Tagged<DenseCaseTag>]
 public partial struct DenseCase<_T1, _T2, _T3> : IUnion<_T1, _T2, _T3>;
 
 public enum SparseCaseTag { T1 = 123, T2 = -23, T3 = 5 }
-[UnionImpl(FieldVisibility = Visibility.Internal), Tagged<SparseCaseTag>]
+[UnionImpl(
+   UnionImplOptions.IncludeHoldsTypeMethod,
+   FieldVisibility = Visibility.Internal),
+   Tagged<SparseCaseTag>]
 public partial struct SparseCase<_T1, _T2, _T3> : IUnion<_T1, _T2, _T3>;
 
 [MemoryDiagnoser, DisassemblyDiagnoser]

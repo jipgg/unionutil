@@ -1,4 +1,4 @@
 using UnionUtil;
 
-[UnionImpl(UnionImplOptions.Nullable | UnionImplOptions.ReadOnly)]
+[UnionImpl(UnionImplOptions.NullableEnabled | UnionImplOptions.ReadOnlyEnabled)]
 readonly partial struct GlobalMustCompile: IUnion<int, float, double, nint, IEnumerable<object>>;

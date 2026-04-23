@@ -4,12 +4,6 @@ namespace UnionUtil;
 
 using static MethodImplOptions;
 
-public interface ISmallBuffer {
-   abstract static int Size { get; }
-   [UnscopedRef]
-   ref byte Data { get; }
-}
-
 [InlineArray(7)]
 public struct SmallBuffer7 : ISmallBuffer {
    byte _element0;
