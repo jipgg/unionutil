@@ -57,13 +57,13 @@ static class SourceResolvers {
       }
       var entries = args.StorageTypes.Entries;
       sb.Append(args.T);
-      if (!opts.Has(ImplementAdapter) && !opts.Has(ImplementInterface)) goto skip_interface_implementations;
+      if (!opts.Has(ImplementCommonInterface) && !opts.Has(ImplementGenericInterface)) goto skip_interface_implementations;
       sb.Append(':');
-      if (opts.Has(ImplementInterface)) {
+      if (opts.Has(ImplementGenericInterface)) {
          sb.Append($"{unionUtil}.{Config.UnionType.InterfaceName}<{string.Join(",", entries.Select(e => e.TypeName))}>,");
       }
-      if (opts.Has(ImplementAdapter)) {
-         sb.Append($"{unionUtil}.{Config.AdapterName},");
+      if (opts.Has(ImplementCommonInterface)) {
+         sb.Append($"{unionUtil}.{nameof(IUnion)},");
       }
       --sb.Length;
    skip_interface_implementations:
@@ -320,12 +320,12 @@ static class SourceResolvers {
          }
       """);
    skip_tag_property:
-      if (!opts.Has(ImplementAdapter)) goto skip_implement_visitor;
-      const string adapter = $"{unionUtil}.{Config.AdapterName}";
+      if (!opts.Has(ImplementCommonInterface)) goto skip_implement_visitor;
+      const string @interface = $"{unionUtil}.{nameof(IUnion)}";
       var canHoldTypeExpr = string.Join("||", entries.Select(static e => $"typeof(Tx) == typeof({e.TypeName})"));
       sb.AppendLine($$"""
          [{{aggressiveInlining}}]
-         bool {{adapter}}.HoldsType<Tx>() => {{indexField}} switch {
+         bool {{@interface}}.HoldsType<Tx>() => {{indexField}} switch {
       """);
       foreach (var e in entries) sb.AppendLine($"      {e.TypeIndex} => typeof(Tx) == typeof({e.TypeName}),");
       sb.AppendLine($$"""
@@ -334,14 +334,14 @@ static class SourceResolvers {
       """);
       sb.AppendLine($$"""
             [{{aggressiveInlining}}]
-            bool {{adapter}}.CanHoldType<Tx>() => {{canHoldTypeExpr}};
-            bool {{adapter}}.IsReadOnly => {{(isReadOnly ? "true" : "false")}};
-            bool {{adapter}}.IsNullable => {{(isNullable ? "true" : "false")}};
-            object? {{adapter}}.Value => Value;
-            bool {{adapter}}.HasValue => {{(isNullable ? "HasValue" : "true")}};
-            int {{adapter}}.TypeCount => {{entries.Length}};
+            bool {{@interface}}.CanHoldType<Tx>() => {{canHoldTypeExpr}};
+            bool {{@interface}}.IsReadOnly => {{(isReadOnly ? "true" : "false")}};
+            bool {{@interface}}.IsNullable => {{(isNullable ? "true" : "false")}};
+            object? {{@interface}}.Value => Value;
+            bool {{@interface}}.HasValue => {{(isNullable ? "HasValue" : "true")}};
+            int {{@interface}}.TypeCount => {{entries.Length}};
             [{{aggressiveInlining}}]
-            bool {{adapter}}.TrySetValue<Tx>(Tx value) {
+            bool {{@interface}}.TrySetValue<Tx>(Tx value) {
          """);
       if (!isReadOnly) {
          foreach (var e in entries) {
@@ -357,7 +357,7 @@ static class SourceResolvers {
                return false;
             }
             [{{aggressiveInlining}}]
-            bool {{adapter}}.TryGetValue<Tx>(out Tx value) {
+            bool {{@interface}}.TryGetValue<Tx>(out Tx value) {
                switch ({{indexField}}) {
          """);
       foreach (var e in entries) {
@@ -375,7 +375,7 @@ static class SourceResolvers {
                }
             }
             [{{aggressiveInlining}}]
-            bool {{adapter}}.TryClearValue() {
+            bool {{@interface}}.TryClearValue() {
                {{(isReadOnly ? "return false;" : "ClearValue(); return true;")}}
             }
          """);

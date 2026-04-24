@@ -6,7 +6,6 @@ namespace UnionUtil.Meta;
 
 using static UnionImplOptions;
 using static SymbolDisplayFormat;
-using static Result;
 
 enum Strategy : byte { Box, Sequential, Overlap };
 enum Kind : byte { Unmanaged, Open, Reference, Value, Interface };

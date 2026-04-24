@@ -38,20 +38,20 @@ public sealed class UnionTypesConfigGenerator : IIncrementalGenerator {
       if (UnionType.Namespace is string ns) {
          sb.AppendLine($"namespace {ns};");
       }
-      sb.AppendLine($$"""
-      public interface {{Config.AdapterName}} {
-         bool CanHoldType<T>();
-         bool HoldsType<T>();
-         bool IsReadOnly {get;}
-         bool IsNullable {get;}
-         object? Value {get;}
-         bool HasValue {get;}
-         int TypeCount {get;}
-         bool TrySetValue<T>(T value);
-         bool TryGetValue<T>(out T value);
-         bool TryClearValue();
-      }
-      """);
+      // sb.AppendLine($$"""
+      // public interface {{Config.AdapterName}} {
+      //    bool CanHoldType<T>();
+      //    bool HoldsType<T>();
+      //    bool IsReadOnly {get;}
+      //    bool IsNullable {get;}
+      //    object? Value {get;}
+      //    bool HasValue {get;}
+      //    int TypeCount {get;}
+      //    bool TrySetValue<T>(T value);
+      //    bool TryGetValue<T>(out T value);
+      //    bool TryClearValue();
+      // }
+      // """);
       var typeParams = new StringBuilder(typeParamsLength);
       for (int n = 1; n <= UnionType.Arity; ++n) {
          typeParams.Append('<');

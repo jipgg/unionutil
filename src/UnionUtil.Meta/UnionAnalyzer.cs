@@ -9,6 +9,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       ctx.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze);
       ctx.RegisterSyntaxNodeAction(UnionDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.ClassDeclaration);
       ctx.RegisterSyntaxNodeAction(HoldsTypeMethod, SyntaxKind.InvocationExpression);
+      ctx.RegisterSyntaxNodeAction(GenericUnionMethod, SyntaxKind.InvocationExpression);
    }
    static readonly DiagnosticDescriptor MissingUnionImplMarker = new(
       "UU0001",
@@ -72,12 +73,12 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       if (memberAccess.Name.Identifier.Text is not "HoldsType") return;
       if (sm.GetTypeInfo(memberAccess.Expression).Type is not INamedTypeSymbol symbol) return;
       INamedTypeSymbol? @interface = null;
-      if (IsUnionUtil(symbol) && symbol.Name is "IUnion") {
+      if (IsUnionUtil(symbol) && symbol.Name is "IUnion" && symbol.Arity is not 0) {
          @interface = symbol;
       }
       if (@interface is null) {
          @interface = symbol.Interfaces
-            .Where(e => IsUnionUtil(e) && e.Name is "IUnion")
+            .Where(e => IsUnionUtil(e) && e.Name is "IUnion" && symbol.Arity is not 0)
             .FirstOrDefault();
       }
       if (@interface is null) return;
@@ -176,5 +177,90 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
          }
       }
       return;
+   }
+   static void GenericUnionMethod(SyntaxNodeAnalysisContext ctx) {
+      var sm = ctx.SemanticModel;
+      var invocation = (InvocationExpressionSyntax)ctx.Node;
+
+      if (sm.GetSymbolInfo(invocation, ctx.CancellationToken).Symbol is not IMethodSymbol method) return;
+      if (!method.IsGenericMethod) return;
+
+      var original = method.OriginalDefinition;
+
+      var unionParamIndices = new Dictionary<int, int>();
+      var fromUnionBindings = new Dictionary<int, int>();
+
+      for (int i = 0; i < original.TypeParameters.Length; i++) {
+         var tp = original.TypeParameters[i];
+         foreach (var c in tp.ConstraintTypes) {
+            if (c is INamedTypeSymbol named
+               && IsUnionUtil(named)
+               && named.Name is "IUnion"
+               && named.Arity == 0) {
+               unionParamIndices[i] = i;
+               break;
+            }
+         }
+      }
+
+      if (unionParamIndices.Count == 0) return;
+
+      for (int i = 0; i < original.TypeParameters.Length; i++) {
+         if (unionParamIndices.ContainsKey(i)) continue;
+
+         var tp = original.TypeParameters[i];
+         var fromUnion = tp.GetAttributes()
+            .FirstOrDefault(a => IsUnionUtil(a) && a.AttributeClass!.Name is "FromUnionAttribute");
+
+         if (fromUnion is null) continue;
+
+         if (fromUnion.ConstructorArguments.Length > 0
+            && fromUnion.ConstructorArguments[0].Value is string sourceName) {
+            for (int j = 0; j < original.TypeParameters.Length; j++) {
+               if (original.TypeParameters[j].Name == sourceName && unionParamIndices.ContainsKey(j)) {
+                  fromUnionBindings[i] = j;
+                  break;
+               }
+            }
+         } else if (unionParamIndices.Count == 1) {
+            fromUnionBindings[i] = unionParamIndices.Keys.First();
+         }
+      }
+
+      if (fromUnionBindings.Count == 0) return;
+
+      foreach (var pair in fromUnionBindings) {
+         var vi = pair.Key;
+         var ui = pair.Value;
+         var resolvedUnion = method.TypeArguments[ui];
+         var resolvedValue = method.TypeArguments[vi];
+
+         if (resolvedUnion is ITypeParameterSymbol || resolvedValue is ITypeParameterSymbol) continue;
+
+         var (memberTypes, ok) = resolvedUnion.ResolveUnionTypeArgs();
+         if (!ok || memberTypes.Length == 0) continue;
+         if (memberTypes.Any(m => m is ITypeParameterSymbol)) continue;
+
+         bool found = false;
+         foreach (var member in memberTypes) {
+            if (SymbolEqualityComparer.Default.Equals(resolvedValue, member)) {
+               found = true;
+               break;
+            }
+         }
+         if (found) continue;
+
+         Location loc = invocation.GetLocation();
+         for (int pi = 0; pi < original.Parameters.Length; pi++) {
+            if (original.Parameters[pi].Type is ITypeParameterSymbol tps
+               && tps.Ordinal == vi
+               && pi < invocation.ArgumentList.Arguments.Count) {
+               loc = invocation.ArgumentList.Arguments[pi].Expression.GetLocation();
+               break;
+            }
+         }
+
+         ctx.ReportDiagnostic(Diagnostic.Create(WillNeverHoldType, loc, resolvedValue));
+      }
    }
 }

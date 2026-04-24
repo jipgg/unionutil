@@ -49,21 +49,21 @@ public partial struct BoxedResult<T> : IUnion<T, Exception> {
    }
 }
 [UnionImpl(
-   EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementAdapter,
+   EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementCommonInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(23)]
 public partial struct Sbo23<T1, T2, T3> : IUnion<T1, T2, T3>;
 [UnionImpl(
-   EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementAdapter,
+   EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementCommonInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(55)]
 public partial struct Sbo55<T1, T2, T3> : IUnion<T1, T2, T3>;
 [UnionImpl(
-   EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementAdapter,
+   EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementCommonInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(15)]
 public partial struct Sbo15<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementAdapter,
+[UnionImpl(EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementCommonInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized<SBO7>]
 public partial struct Sbo7<T1, T2, T3> : IUnion<T1, T2, T3>;

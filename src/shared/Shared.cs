@@ -45,6 +45,9 @@ public interface ISmallBuffer {
 public sealed class SmallBufferOptimizedAttribute<TSmallBuffer>() : Attribute where TSmallBuffer : ISmallBuffer;
 #endif
 
+[AttributeUsage(AttributeTargets.GenericParameter)]
+public sealed class FromUnionAttribute(string? typeParamName = null) : Attribute;
+
 /// <summary>
 /// Adds a strongly-typed tag field to the generated union and
 /// generates named properties.
@@ -136,12 +139,12 @@ public enum UnionImplOptions : uint {
    // <summary>
    // implements generic adapter interface for writing generic code in a non-boxing way.
    // </summary>
-   ImplementAdapter = 1 << 7,
+   ImplementCommonInterface = 1 << 7,
 
    // <summary>
    // Explicitly implements the generic IUnion  interface.
    // </summary>
-   ImplementInterface = 1 << 8,
+   ImplementGenericInterface = 1 << 8,
 };
 public static class UnionImplOptionsExtenions {
    extension(UnionImplOptions opts) {
@@ -159,4 +162,17 @@ public static class VisibilityExtensions {
          _ => "private",
       };
    }
+}
+
+public interface IUnion {
+   bool CanHoldType<T>();
+   bool HoldsType<T>();
+   bool IsReadOnly { get; }
+   bool IsNullable { get; }
+   object? Value { get; }
+   bool HasValue { get; }
+   int TypeCount {get;}
+   bool TrySetValue<T>(T value);
+   bool TryGetValue<T>(out T value);
+   bool TryClearValue();
 }

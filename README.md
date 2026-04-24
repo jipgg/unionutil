@@ -87,3 +87,5 @@ var str = result switch {
 };
 
 ```
+# Benchmarks
+More proper benchmarks will be added once t
