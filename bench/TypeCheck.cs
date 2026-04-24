@@ -1,13 +1,15 @@
 public enum DenseCaseTag { T1, T2, T3 }
 [UnionImpl(
-   UnionImplOptions.WithHoldsTypeMethod,
+   UnionImplOptions.WithHoldsTypeMethod |
+   UnionImplOptions.ImplementAdapter,
    FieldVisibility = Visibility.Internal),
    Tagged<DenseCaseTag>]
 public partial struct DenseCase<_T1, _T2, _T3> : IUnion<_T1, _T2, _T3>;
 
 public enum SparseCaseTag { T1 = 123, T2 = -23, T3 = 5 }
 [UnionImpl(
-   UnionImplOptions.WithHoldsTypeMethod,
+   UnionImplOptions.WithHoldsTypeMethod |
+   UnionImplOptions.ImplementAdapter,
    FieldVisibility = Visibility.Internal),
    Tagged<SparseCaseTag>]
 public partial struct SparseCase<_T1, _T2, _T3> : IUnion<_T1, _T2, _T3>;
@@ -15,13 +17,25 @@ public partial struct SparseCase<_T1, _T2, _T3> : IUnion<_T1, _T2, _T3>;
 [MemoryDiagnoser, DisassemblyDiagnoser]
 [SimpleJob(RuntimeMoniker.Net10_0)]
 public class TypeCheck {
-   public DenseCase<int, float, object> _dense;
-   public SparseCase<int, float, object> _sparse;
+   [Params(1234, 0.12345f)]
+   public object? _value;
+   public DenseCase<int, float, List<double>> _dense;
+   public IUnionAdapter _preboxed = default!;
+   public SparseCase<int, float, List<double>> _sparse;
 
    [GlobalSetup]
    public void Setup() {
-      _dense = 1;
-      _sparse = 1;
+      if (_value is int i) {
+         _dense = i;
+         _sparse = i;
+         _preboxed = _dense;
+      } else if (_value is float f) {
+         _dense = f;
+         _sparse = f;
+         _preboxed = _dense;
+      } else {
+         throw new();
+      }
    }
 
    [Benchmark]
@@ -48,18 +62,15 @@ public class TypeCheck {
    }
 
    [Benchmark]
-   public bool HoldsType_OpenGeneric() {
-      return CheckType<int, float, object, int>(ref _dense);
+   public bool HoldsType_Adapter() {
+      static bool generic<T>(ref T v) where T: IUnionAdapter {
+         return v.HoldsType<int>();
+      }
+      return generic(ref _dense);
    }
-
    [Benchmark]
-   public bool HoldsType_OpenGeneric_Mismatch() {
-      return CheckType<int, float, object, float>(ref _dense);
-   }
-
-   [MethodImpl(MethodImplOptions.NoInlining)]
-   static bool CheckType<T1, T2, T3, X>(ref DenseCase<T1, T2, T3> union) {
-      return union.HoldsType<X>();
+   public bool HoldsType_Adapter_Preboxed() {
+      return _preboxed.HoldsType<int>();
    }
 
 }

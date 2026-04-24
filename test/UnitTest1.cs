@@ -15,6 +15,11 @@ public enum MutableTag { Int = 9, Double = 1, Vector3 = -3 }
 [Union<int, double, Vector3>]
 partial struct MutableStruct;
 
+[UnionImpl(BoxOpenGenerics | ImplementAdapter, FieldVisibility = Visibility.Internal), SmallBufferOptimized]
+partial struct Union<T, U, V>;
+
+[UnionImpl]
+partial struct MutableStruct2<T> where T: struct;
 
 public enum Case { A, B, C, D, E, F, G }
 [Tagged<Case>("Case"), UnionImpl(
@@ -123,5 +128,17 @@ public class MutableStructTests {
       Assert.Equal(1, sbo7._index);
       sbo7 = 0.5;
       TestAdapter(ref sbo7, 0.5, 1.23);
+   }
+
+   [Fact]
+   public void TestSetValue() {
+      Union<int, Int128, double[]> u = 1;
+      Int128 x = new(123, 123);
+      u.SetValue(x);
+      Assert.True(u.TryGetValue(out Int128 u1));
+      Assert.Equal(x, u1);
+      u.SetValue(1);
+      Assert.False(u.TryGetValue(out Int128 _));
+      Assert.Equal(1, u.Value);
    }
 }

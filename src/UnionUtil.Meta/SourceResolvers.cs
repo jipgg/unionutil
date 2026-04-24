@@ -107,17 +107,17 @@ static class SourceResolvers {
             }
          """);
       }
-      void writeSetValue(in StorageEntry arg, string assign) {
+      void writeSetValue(in StorageEntry arg, string refExpr, string setExpr) {
          if (isReadOnly) return;
          sb.AppendLine($$"""
             [{{aggressiveInlining}}]
             public void SetValue({{arg.TypeName}} v) {
                if ({{indexField}} is {{arg.TypeIndex}}) {
-                  {{assign}} = v;
+                  {{refExpr}} = v;
                   return;
                }
                ClearValue();
-               {{assign}} = v;
+               {{setExpr}};
                {{indexField}} = {{arg.TypeIndex}};
             }
          """);
@@ -172,11 +172,12 @@ static class SourceResolvers {
       sb.AppendLine("   }");
       writeField(overlappedType, overlappedField, "default");
       foreach (var e in toOverlap) {
-         getValueExprs = [.. getValueExprs, (e.TypeIndex, $"{overlappedField}.{FieldName(e)}")];
+         var field = $"{overlappedField}.{FieldName(e)}";
+         getValueExprs = [.. getValueExprs, (e.TypeIndex, field)];
          writeConstructor(e, $"{overlappedField} = new() {{{FieldName(e)} = v}};");
-         writeTryGetValue(e, $"v = {overlappedField}.{FieldName(e)};");
-         writeSetValue(e, $"{overlappedField}.{FieldName(e)}");
-         writeProperties(e, $"{overlappedField}.{FieldName(e)}");
+         writeTryGetValue(e, $"v = {field};");
+         writeSetValue(e, field, $"{field} = v");
+         writeProperties(e, field);
       }
    skip_to_overlap:
       if (toBox.Length is 0) goto skip_to_box;
@@ -200,10 +201,14 @@ static class SourceResolvers {
       }
       foreach (var e in toBox) {
          var T = (string)e.TypeName;
+         string box;
          if (e.Kind is Kind.Open && e.Strategy is Strategy.Box) {
-            if (TSbo is null) writeConstructor(e, $"{objectField} = {GenericHelpersBox(T, "v")}");
-            else writeConstructor(e, $"{GenericHelpersSboBox(T, TSbo, sboField, objectField, "v")}");
-         } else writeConstructor(e, $"{objectField} = v;");
+            if (TSbo is null) box = $"{objectField} = {GenericHelpersBox(T, "v")}";
+            else box = $"{GenericHelpersSboBox(T, TSbo, sboField, objectField, "v")}";
+            // if (TSbo is null) writeConstructor(e, $"{objectField} = {GenericHelpersBox(T, "v")}");
+            // else writeConstructor(e, $"{GenericHelpersSboBox(T, TSbo, sboField, objectField, "v")}");
+         } else box = $"{objectField} = v;";
+         writeConstructor(e, box);
          var getExpr = e.Kind switch {
             Kind.Reference or Kind.Interface => $"{@unsafe}.As<{T}>({objectField}!)",
             Kind.Value or Kind.Unmanaged => $"{@unsafe}.Unbox<{T}>({objectField}!)",
@@ -216,7 +221,7 @@ static class SourceResolvers {
          };
          writeProperties(e, getExpr);
          writeTryGetValue(e, $"v = {getExpr};");
-         writeSetValue(e, refExpr);
+         writeSetValue(e, refExpr, box);
          if (args.SmallBufferOptimized.Tag is Sbo.Disabled) {
             clearExprs = [.. clearExprs, (e.TypeIndex, $"{objectField} = null")];
          }
@@ -233,7 +238,7 @@ static class SourceResolvers {
          writeConstructor(e, $"{holder} = v;");
          writeTryGetValue(e, $"v = {holder};");
          if (isReadOnly is false) {
-            writeSetValue(e, holder);
+            writeSetValue(e, holder, $"{holder} = v");
             clearExprs = [.. clearExprs, (e.TypeIndex, $"{holder} = default!")];
          }
          writeProperties(e, holder);
