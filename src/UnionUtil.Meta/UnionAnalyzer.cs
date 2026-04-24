@@ -1,6 +1,8 @@
+using System.Collections.Specialized;
 using System.Runtime.CompilerServices;
 using System.Buffers;
 namespace UnionUtil.Meta;
+
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class UnionAnalyzer : DiagnosticAnalyzer {
@@ -178,6 +180,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       }
       return;
    }
+
    static void GenericUnionMethod(SyntaxNodeAnalysisContext ctx) {
       var sm = ctx.SemanticModel;
       var invocation = (InvocationExpressionSyntax)ctx.Node;
@@ -187,16 +190,19 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
 
       var original = method.OriginalDefinition;
 
-      var unionParamIndices = new Dictionary<int, int>();
-      var fromUnionBindings = new Dictionary<int, int>();
+      var minSize = original.TypeParameters.Length;
+      // may need a guard in the future for unhingedly long source generated type parameters
+      Span<(int, int)> buf = stackalloc (int, int)[minSize * 2];
+      var unionParamIndices = new SpanDictionary<int, int>(buf.Slice(0, minSize));
+      var fromUnionBindings = new SpanDictionary<int, int>(buf.Slice(minSize));
 
       for (int i = 0; i < original.TypeParameters.Length; i++) {
          var tp = original.TypeParameters[i];
          foreach (var c in tp.ConstraintTypes) {
             if (c is INamedTypeSymbol named
                && IsUnionUtil(named)
-               && named.Name is "IUnion"
-               && named.Arity == 0) {
+               && named.MetadataName is nameof(IUnion)
+               && named.Arity is 0) {
                unionParamIndices[i] = i;
                break;
             }
@@ -210,8 +216,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
 
          var tp = original.TypeParameters[i];
          var fromUnion = tp.GetAttributes()
-            .FirstOrDefault(a => IsUnionUtil(a) && a.AttributeClass!.Name is "FromUnionAttribute");
-
+            .FirstOrDefault(a => IsUnionUtil(a) && a.AttributeClass!.Name is nameof(FromUnionAttribute));
          if (fromUnion is null) continue;
 
          if (fromUnion.ConstructorArguments.Length > 0
@@ -222,16 +227,14 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
                   break;
                }
             }
-         } else if (unionParamIndices.Count == 1) {
+         } else if (unionParamIndices.Count is 1) {
             fromUnionBindings[i] = unionParamIndices.Keys.First();
          }
       }
 
       if (fromUnionBindings.Count == 0) return;
 
-      foreach (var pair in fromUnionBindings) {
-         var vi = pair.Key;
-         var ui = pair.Value;
+      foreach (var (vi, ui) in fromUnionBindings) {
          var resolvedUnion = method.TypeArguments[ui];
          var resolvedValue = method.TypeArguments[vi];
 
@@ -259,7 +262,6 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
                break;
             }
          }
-
          ctx.ReportDiagnostic(Diagnostic.Create(WillNeverHoldType, loc, resolvedValue));
       }
    }
