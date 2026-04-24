@@ -1,14 +1,13 @@
-
 public enum DenseCaseTag { T1, T2, T3 }
 [UnionImpl(
-   UnionImplOptions.IncludeHoldsTypeMethod,
+   UnionImplOptions.WithHoldsTypeMethod,
    FieldVisibility = Visibility.Internal),
    Tagged<DenseCaseTag>]
 public partial struct DenseCase<_T1, _T2, _T3> : IUnion<_T1, _T2, _T3>;
 
 public enum SparseCaseTag { T1 = 123, T2 = -23, T3 = 5 }
 [UnionImpl(
-   UnionImplOptions.IncludeHoldsTypeMethod,
+   UnionImplOptions.WithHoldsTypeMethod,
    FieldVisibility = Visibility.Internal),
    Tagged<SparseCaseTag>]
 public partial struct SparseCase<_T1, _T2, _T3> : IUnion<_T1, _T2, _T3>;
@@ -59,8 +58,8 @@ public class TypeCheck {
    }
 
    [MethodImpl(MethodImplOptions.NoInlining)]
-   static bool CheckType<T1, T2, T3, TQuery>(ref DenseCase<T1, T2, T3> union) {
-      return union.HoldsType<TQuery>();
+   static bool CheckType<T1, T2, T3, X>(ref DenseCase<T1, T2, T3> union) {
+      return union.HoldsType<X>();
    }
 
 }

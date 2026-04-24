@@ -1,40 +1,49 @@
-[UnionImpl(FieldVisibility = Visibility.Internal)]
+[UnionImpl(UnionImplOptions.ImplementAdapter, FieldVisibility = Visibility.Internal)]
 public partial struct BasicUnion<T, U, V, W> : IUnion<T, U, V, W>;
 [MemoryDiagnoser, DisassemblyDiagnoser]
 [SimpleJob(RuntimeMoniker.Net10_0)]
-public class GetValue {
-   public BasicUnion<_16B, double, int[], double[]> _union;
+[GenericTypeArguments(typeof(int))]
+[GenericTypeArguments(typeof(Int128))] [GenericTypeArguments(typeof(List<Int128>))]
+public class GetValue<T> {
+   public BasicUnion<T, double, int[], double[]> _union;
 
    [GlobalSetup]
    public void Setup() {
-      _union = new _16B(1, 2);
+      object v = typeof(T) switch {
+         var t when t == typeof(int) => 123,
+         var t when t == typeof(Int128) => new Int128(1, 2),
+         var t when t == typeof(List<Int128>) => new List<Int128>(Enumerable.Range(0, 10).Select(e => new Int128((ulong)e, (ulong)e))),
+         _ => throw new(),
+      };
+      _union = (T)v;
    }
 
    [Benchmark]
-   public _16B FieldAccess() {
+   public T? FieldAccess() {
       if (_union._index is not 1) return default;
       else return _union._1;
    }
    [Benchmark]
-   public _16B ValueProperty() {
-      if (_union.Value is not _16B v) return default;
+   public T? ValueProperty() {
+      if (_union.Value is not T v) return default;
       else return v;
    }
    [Benchmark]
-   public _16B TryGetValue() {
-      if (!_union.TryGetValue(out _16B v)) return default;
+   public T? TryGetValue() {
+      if (!_union.TryGetValue(out T v)) return default;
       else return v;
    }
-   [Benchmark(Description = "IUnion.TryGetValue<T>")]
-   public _16B TryGetValueT() {
-      var u = (IUnion)_union;
-      if (!u.TryGetValue(out _16B v)) return default;
+   [Benchmark(Description = "IUnionVisitor.TryGetValue<T>")]
+   public T? TryGetValueT() {
+      var u = (IUnionAdapter)_union;
+      if (!u.TryGetValue(out T v)) return default;
       else return v;
    }
-   [Benchmark(Description = "TUnion.TryGetValue<T>")]
-   public _16B TryGetValueTGeneric() {
-      static _16B Generic<T>(ref T u) where T : IUnion {
-         if (!u.TryGetValue(out _16B v)) return default;
+   [Benchmark(Description = "TUnionVisitor.TryGetValue<T>")]
+   public T? TryGetValueTGeneric() {
+      [MethodImpl(AggressiveInlining)]
+      static T? Generic<U>(ref U u) where U : IUnionAdapter {
+         if (!u.TryGetValue(out T v)) return default;
          else return v;
       }
       return Generic(ref _union);

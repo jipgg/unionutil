@@ -87,6 +87,3 @@ var str = result switch {
 };
 
 ```
-# Benchmarks
-More proper benchmarks will come once C#15 unions are in a more fleshed out state.
-Benchmark reports can be found [here](./bench/reports/).

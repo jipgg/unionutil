@@ -11,9 +11,10 @@ using static UnionImplOptions;
 public enum MutableTag { Int = 9, Double = 1, Vector3 = -3 }
 
 [Tagged<MutableTag>]
-[UnionImpl(NullableEnabled)]
+[UnionImpl(EnableNullable)]
 [Union<int, double, Vector3>]
 partial struct MutableStruct;
+
 
 public enum Case { A, B, C, D, E, F, G }
 [Tagged<Case>("Case"), UnionImpl(
@@ -70,37 +71,49 @@ public class MutableStructTests {
       };
       Assert.Equal("abc", x);
    }
-   static void TestNonExhaustive<TUnion, T>(TUnion u, T v) where TUnion: IUnion where T: IEquatable<T> {
+   static void TestAdapter<TAdapter, T, U>(ref TAdapter u, T v, U v2) where TAdapter: IUnionAdapter where T: IEquatable<T> {
       Assert.True(u.TryGetValue(out T x));
+      Assert.True(u.HoldsType<T>());
       Assert.Equal(v, x);
+      Assert.True(u.CanHoldType<T>());
+      Assert.True(u.TrySetValue((v2)));
+      Assert.True(u.TryGetValue(out U x2));
+      Assert.Equal(v2, x2);
+      Assert.True(u.CanHoldType<U>());
+      Assert.True(u.HoldsType<U>());
    }
    [Fact]
    public void SBOWorks() {
       Sbo23<int, double, Exception> sbo23 = 0.5;
-      TestNonExhaustive(sbo23, 0.5);
       Assert.Equal(32, Unsafe.SizeOf<Sbo23<int, double, Exception>>());
       Assert.Null(sbo23._box);
       Assert.Equal(0.5, Unsafe.As<byte, double>(ref sbo23._sbo.Data));
       Assert.Equal(2, sbo23._index);
+      sbo23 = 0.5;
+      TestAdapter(ref sbo23, 0.5, new Exception("eeeeee"));
 
       Sbo55<int, double, Exception> sbo55 = 0.5;
-      TestNonExhaustive(sbo55, 0.5);
       Assert.Equal(64, Unsafe.SizeOf<Sbo55<int, double, Exception>>());
       Assert.Null(sbo55._box);
       Assert.Equal(0.5, Unsafe.As<byte, double>(ref sbo55._sbo.Data));
       Assert.Equal(2, sbo55._index);
+      sbo55 = 0.5;
+      TestAdapter(ref sbo55, 0.5, 0.10);
 
       Sbo15<int, double, Exception> sbo15 = 0.5;
-      TestNonExhaustive(sbo15, 0.5);
       Assert.Equal(24, Unsafe.SizeOf<Sbo15<int, double, Exception>>());
       Assert.Null(sbo15._box);
       Assert.Equal(0.5, Unsafe.As<byte, double>(ref sbo15._sbo.Data));
       Assert.Equal(2, sbo15._index);
+      sbo15 = 0.5;
+      TestAdapter(ref sbo15, 0.5, new Exception("eewawadaw"));
 
       Sbo7<int, double, Exception> sbo7 = 0.5;
-      TestNonExhaustive(sbo7, 0.5);
       Assert.Equal(16, Unsafe.SizeOf<Sbo7<int, double, Exception>>());
       Assert.NotNull(sbo7._box);
+      IUnionAdapter sv = sbo7;
+      Assert.True(sv.HoldsType<double>());
+      Assert.False(sv.HoldsType<object>());
       Assert.True(sbo7.HoldsType<double>());
       Assert.True(sbo7.TryGetValue(out double d));
       Assert.Equal(0.5, d);
@@ -108,5 +121,7 @@ public class MutableStructTests {
       sbo7.SetValue(1);
       Assert.Equal(1, Unsafe.As<byte, int>(ref sbo7._sbo.Data));
       Assert.Equal(1, sbo7._index);
+      sbo7 = 0.5;
+      TestAdapter(ref sbo7, 0.5, 1.23);
    }
 }

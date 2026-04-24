@@ -10,50 +10,50 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       ctx.RegisterSyntaxNodeAction(UnionDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.ClassDeclaration);
       ctx.RegisterSyntaxNodeAction(HoldsTypeMethod, SyntaxKind.InvocationExpression);
    }
-   static DiagnosticDescriptor MissingUnionImpl => new(
-      $"{nameof(MissingUnionImpl)}",
+   static readonly DiagnosticDescriptor MissingUnionImplMarker = new(
+      "UU0001",
       "missing UnionImpl marker",
       "'{0}' does nothing without marking with 'UnionUtil.UnionImplAttribute'",
-      "UnionUtil",
+      "Usage",
       DiagnosticSeverity.Warning,
       true
    );
-   static DiagnosticDescriptor MissingTypesMarker => new(
-      $"{nameof(MissingTypesMarker)}",
-      "missing types marker",
-      "types must be marked with 'IUnion<...T>' or 'UnionAttribute<...T>'",
-      "UnionUtil",
+   static readonly DiagnosticDescriptor TypesCouldNotBeInferred = new(
+      "UU0002",
+      "types could not be inferred",
+      "could not infer types, mark them with 'IUnion' or 'UnionAttribute'",
+      "Usage",
       DiagnosticSeverity.Error,
       true
    );
-   static DiagnosticDescriptor BadTagEnumLength => new(
-      $"{nameof(BadTagEnumLength)}",
-      "bad tag enum length",
-      "length of '{0}' does not match type count of '{1}'",
-      "UnionUtil",
-      DiagnosticSeverity.Error,
+   static readonly DiagnosticDescriptor TagEnumNotExhaustive = new(
+      "UU0003",
+      "tag enum is not exhaustive",
+      "length of '{0}' does not match the count of possible union cases",
+      "Usage",
+      DiagnosticSeverity.Warning,
       true
    );
-   static DiagnosticDescriptor MissingPartialKeyword => new(
-      $"{nameof(MissingPartialKeyword)}",
+   static readonly DiagnosticDescriptor MissingPartialKeyword = new(
+      "UU0004",
       "missing partial keyword",
       "type is missing partial specifier",
-      "UnionUtil",
+      "Usage",
       DiagnosticSeverity.Warning,
       true
    );
-   static DiagnosticDescriptor WillNeverHoldType => new(
-      $"{nameof(WillNeverHoldType)}",
+   static readonly DiagnosticDescriptor WillNeverHoldType = new(
+      "UU0005",
       "will never hold type",
       "will never hold type '{0}'",
-      "UnionUtil",
+      "Usage",
       DiagnosticSeverity.Warning,
       true
    );
    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [
-      MissingUnionImpl,
-      MissingTypesMarker,
-      BadTagEnumLength,
+      MissingUnionImplMarker,
+      TypesCouldNotBeInferred,
+      TagEnumNotExhaustive,
       MissingPartialKeyword,
       WillNeverHoldType,
    ];
@@ -130,13 +130,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       SymbolData? taggedSymbol = null;
       SymbolData? sboSymbol = null;
       SymbolData? unionSymbol = null;
-      foreach (var e in interfaces) {
-         if (e.Name is not "IUnion") continue;
-         if (e.Arity is 0) continue;
-         var loc = e.DeclaringSyntaxReferences.FirstOrDefault()?
-            .GetSyntax(ctx.CancellationToken).GetLocation() ?? symbol.Locations.First();
-         unionSymbol = new(e, loc);
-      }
+      var (typeArgs, typeArgsOk) = symbol.ResolveUnionTypeArgs();
       foreach (var e in attributes) {
          var loc = e.ApplicationSyntaxReference?
             .GetSyntax(ctx.CancellationToken)
@@ -159,7 +153,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       if (unionImpl is SymbolData impl) goto unionimpl_not_null;
       void diagnoseMissing(in SymbolData? s) {
          if (s is not SymbolData sd) return;
-         ctx.ReportDiagnostic(Diagnostic.Create(MissingUnionImpl, sd.Loc, sd.Sym));
+         ctx.ReportDiagnostic(Diagnostic.Create(MissingUnionImplMarker, sd.Loc, sd.Sym));
       }
       diagnoseMissing(taggedSymbol);
       diagnoseMissing(sboSymbol);
@@ -169,16 +163,16 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       if (!node.Modifiers.Any(SyntaxKind.PartialKeyword)) {
          ctx.ReportDiagnostic(Diagnostic.Create(MissingPartialKeyword, symbol.Locations.First()));
       }
-      if (unionSymbol is null) {
-         ctx.ReportDiagnostic(Diagnostic.Create(MissingTypesMarker, impl.Loc));
+      if (!typeArgsOk || typeArgs.Length is 0) {
+         ctx.ReportDiagnostic(Diagnostic.Create(TypesCouldNotBeInferred, impl.Loc));
       }
-      if (taggedSymbol is SymbolData tagged && unionSymbol is SymbolData union) {
+      if (taggedSymbol is SymbolData tagged) {
          var tags = tagged.Sym.TypeArguments[0].GetMembers()
             .OfType<IFieldSymbol>()
             .Where(e => e.HasConstantValue)
             .ToArray();
-         if (tags.Length != union.Sym.Arity) {
-            ctx.ReportDiagnostic(Diagnostic.Create(BadTagEnumLength, tagged.Loc, tagged.Sym, union.Sym));
+         if (tags.Length != typeArgs.Length) {
+            ctx.ReportDiagnostic(Diagnostic.Create(TagEnumNotExhaustive, tagged.Loc, tagged.Sym));
          }
       }
       return;

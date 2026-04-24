@@ -7,6 +7,9 @@ using static UnionImplOptions;
 
 public enum Result { Ok, Err }
 
+[UnionImpl, Union<bool, Exception>, Tagged<Result>]
+partial struct ResultVoid;
+
 [Tagged<Result>, UnionImpl(FieldVisibility = Visibility.Internal)]
 public partial struct Result<T, E> : IUnion<T, E> where E : Exception;
 
@@ -26,13 +29,13 @@ public partial struct Result<T> : IUnion<T, Exception> {
 }
 
 [Tagged<Result>, UnionImpl(
-   BoxManagedStructs | BoxOpenGenerics | IncludeHoldsTypeMethod,
+   BoxManagedStructs | BoxOpenGenerics | WithHoldsTypeMethod,
    FieldVisibility = Visibility.Internal
 )]
 public partial struct BoxedResult<T, E> : IUnion<T, E> where E : Exception;
 
 [Tagged<Result>, UnionImpl(
-      BoxManagedStructs | BoxOpenGenerics | IncludeHoldsTypeMethod,
+      BoxManagedStructs | BoxOpenGenerics | WithHoldsTypeMethod,
       FieldVisibility = Visibility.Internal
 )]
 public partial struct BoxedResult<T> : IUnion<T, Exception> {
@@ -46,21 +49,21 @@ public partial struct BoxedResult<T> : IUnion<T, Exception> {
    }
 }
 [UnionImpl(
-   NullableEnabled | BoxOpenGenerics | IncludeHoldsTypeMethod,
+   EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementAdapter,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(23)]
 public partial struct Sbo23<T1, T2, T3> : IUnion<T1, T2, T3>;
 [UnionImpl(
-   NullableEnabled | BoxOpenGenerics | IncludeHoldsTypeMethod,
+   EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementAdapter,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(55)]
 public partial struct Sbo55<T1, T2, T3> : IUnion<T1, T2, T3>;
 [UnionImpl(
-   NullableEnabled | BoxOpenGenerics | IncludeHoldsTypeMethod,
+   EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementAdapter,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(15)]
 public partial struct Sbo15<T1, T2, T3> : IUnion<T1, T2, T3>;
-[UnionImpl(NullableEnabled | BoxOpenGenerics | IncludeHoldsTypeMethod,
+[UnionImpl(EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementAdapter,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized<SBO7>]
 public partial struct Sbo7<T1, T2, T3> : IUnion<T1, T2, T3>;

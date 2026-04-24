@@ -1,3 +1,5 @@
+[UnionUtil.UnionImpl(UnionImplOptions.BoxOpenGenerics | UnionImplOptions.BoxManagedStructs)]
+partial struct Boxed<T1, T2, T3> : IUnion<T1, T2, T3>;
 public struct MutableUnion<T1, T2, T3> {
    object? _value;
    int _tag;

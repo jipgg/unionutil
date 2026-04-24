@@ -45,4 +45,3 @@ public struct SmallBuffer23 : ISmallBuffer {
       get => ref _element0;
    }
 }
-
