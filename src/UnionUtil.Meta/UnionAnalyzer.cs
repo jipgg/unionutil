@@ -3,15 +3,16 @@ using System.Runtime.CompilerServices;
 using System.Buffers;
 namespace UnionUtil.Meta;
 
+using static SyntaxKind;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class UnionAnalyzer : DiagnosticAnalyzer {
    public override void Initialize(AnalysisContext ctx) {
       ctx.EnableConcurrentExecution();
       ctx.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze);
-      ctx.RegisterSyntaxNodeAction(UnionDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.ClassDeclaration);
-      ctx.RegisterSyntaxNodeAction(HoldsTypeMethod, SyntaxKind.InvocationExpression);
-      ctx.RegisterSyntaxNodeAction(GenericUnionMethod, SyntaxKind.InvocationExpression);
+      ctx.RegisterSyntaxNodeAction(UnionDeclaration, StructDeclaration, ClassDeclaration);
+      ctx.RegisterSyntaxNodeAction(HoldsTypeMethod, InvocationExpression);
+      ctx.RegisterSyntaxNodeAction(GenericUnionMethod, InvocationExpression);
    }
    static readonly DiagnosticDescriptor MissingUnionImplMarker = new(
       "UU0001",
@@ -53,6 +54,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       DiagnosticSeverity.Warning,
       true
    );
+
    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [
       MissingUnionImplMarker,
       TypesCouldNotBeInferred,
@@ -61,13 +63,6 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       WillNeverHoldType,
    ];
 
-   static bool IsUnionUtil(ITypeSymbol? symbol) {
-      if (symbol is null) return false;
-      if (symbol.ContainingNamespace.IsGlobalNamespace) return false;
-      return symbol.ContainingNamespace.ContainingNamespace.IsGlobalNamespace
-         && symbol.ContainingNamespace?.MetadataName == "UnionUtil";
-   }
-   static bool IsUnionUtil(AttributeData? attributeData) => IsUnionUtil(attributeData?.AttributeClass);
    static void HoldsTypeMethod(SyntaxNodeAnalysisContext ctx) {
       var sm = ctx.SemanticModel;
       var invocation = (InvocationExpressionSyntax)ctx.Node;
@@ -75,12 +70,12 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       if (memberAccess.Name.Identifier.Text is not "HoldsType") return;
       if (sm.GetTypeInfo(memberAccess.Expression).Type is not INamedTypeSymbol symbol) return;
       INamedTypeSymbol? @interface = null;
-      if (IsUnionUtil(symbol) && symbol.Name is "IUnion" && symbol.Arity is not 0) {
+      if (Helpers.IsUnionUtil(symbol) && symbol.Name is nameof(IUnion) && symbol.Arity is not 0) {
          @interface = symbol;
       }
       if (@interface is null) {
          @interface = symbol.Interfaces
-            .Where(e => IsUnionUtil(e) && e.Name is "IUnion" && symbol.Arity is not 0)
+            .Where(e => Helpers.IsUnionUtil(e) && e.Name is nameof(IUnion) && symbol.Arity is not 0)
             .FirstOrDefault();
       }
       if (@interface is null) return;
@@ -126,9 +121,9 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       var declaredSymbol = ctx.SemanticModel.GetDeclaredSymbol(ctx.Node, ctx.CancellationToken);
       if (declaredSymbol is not INamedTypeSymbol symbol) return;
       var attributes = symbol.GetAttributes()
-         .Where(IsUnionUtil)
+         .Where(Helpers.IsUnionUtil)
          .ToArray();
-      var interfaces = symbol.Interfaces.Where(IsUnionUtil).ToArray();
+      var interfaces = symbol.Interfaces.Where(Helpers.IsUnionUtil).ToArray();
       SymbolData? unionImpl = null;
       SymbolData? taggedSymbol = null;
       SymbolData? sboSymbol = null;
@@ -139,13 +134,13 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
             .GetSyntax(ctx.CancellationToken)
             .GetLocation() ?? symbol.Locations.First();
          switch (e.AttributeClass!.Name) {
-            case "UnionImplAttribute":
+            case nameof(UnionImplAttribute):
                unionImpl = new(e.AttributeClass, loc);
                break;
-            case "TaggedAttribute":
+            case nameof(TaggedAttribute<>):
                taggedSymbol = new(e.AttributeClass, loc);
                break;
-            case "SmallBufferOptimizedAttribute":
+            case nameof(SmallBufferOptimizedAttribute):
                sboSymbol = new(e.AttributeClass, loc);
                break;
             case "UnionAttribute":
@@ -196,11 +191,11 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       var unionParamIndices = new SpanDictionary<int, int>(buf.Slice(0, minSize));
       var fromUnionBindings = new SpanDictionary<int, int>(buf.Slice(minSize));
 
-      for (int i = 0; i < original.TypeParameters.Length; i++) {
+      for (int i = 0; i < original.TypeParameters.Length; ++i) {
          var tp = original.TypeParameters[i];
          foreach (var c in tp.ConstraintTypes) {
             if (c is INamedTypeSymbol named
-               && IsUnionUtil(named)
+               && Helpers.IsUnionUtil(named)
                && named.MetadataName is nameof(IUnion)
                && named.Arity is 0) {
                unionParamIndices[i] = i;
@@ -209,18 +204,18 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
          }
       }
 
-      if (unionParamIndices.Count == 0) return;
+      // if (unionParamIndices.Count is 0) return;
 
-      for (int i = 0; i < original.TypeParameters.Length; i++) {
+      for (int i = 0; i < original.TypeParameters.Length; ++i) {
          if (unionParamIndices.ContainsKey(i)) continue;
 
          var tp = original.TypeParameters[i];
-         var fromUnion = tp.GetAttributes()
-            .FirstOrDefault(a => IsUnionUtil(a) && a.AttributeClass!.Name is nameof(FromUnionAttribute));
+         var fromUnion = tp.GetAttributes().FirstOrDefault(static a => Helpers.IsUnionUtil(a)
+            && a.AttributeClass!.Name is nameof(FromUnionAttribute));
          if (fromUnion is null) continue;
 
-         if (fromUnion.ConstructorArguments.Length > 0
-            && fromUnion.ConstructorArguments[0].Value is string sourceName) {
+         var ctorArgs = fromUnion.ConstructorArguments;
+         if (ctorArgs.Length > 0 && ctorArgs[0].Value is string sourceName) {
             for (int j = 0; j < original.TypeParameters.Length; j++) {
                if (original.TypeParameters[j].Name == sourceName && unionParamIndices.ContainsKey(j)) {
                   fromUnionBindings[i] = j;
@@ -232,7 +227,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
          }
       }
 
-      if (fromUnionBindings.Count == 0) return;
+      if (fromUnionBindings.Count is 0 || unionParamIndices.Count is 0) return;
 
       foreach (var (vi, ui) in fromUnionBindings) {
          var resolvedUnion = method.TypeArguments[ui];
@@ -242,7 +237,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
 
          var (memberTypes, ok) = resolvedUnion.ResolveUnionTypeArgs();
          if (!ok || memberTypes.Length == 0) continue;
-         if (memberTypes.Any(m => m is ITypeParameterSymbol)) continue;
+         if (memberTypes.Any(static m => m is ITypeParameterSymbol)) continue;
 
          bool found = false;
          foreach (var member in memberTypes) {
@@ -254,7 +249,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
          if (found) continue;
 
          Location loc = invocation.GetLocation();
-         for (int pi = 0; pi < original.Parameters.Length; pi++) {
+         for (int pi = 0; pi < original.Parameters.Length; ++pi) {
             if (original.Parameters[pi].Type is ITypeParameterSymbol tps
                && tps.Ordinal == vi
                && pi < invocation.ArgumentList.Arguments.Count) {

@@ -136,14 +136,15 @@ public enum UnionImplOptions : uint {
    /// </summary>
    WithExplicitConversionsToValue = 1 << 6,
 
-   // <summary>
-   // implements generic adapter interface for writing generic code in a non-boxing way.
-   // </summary>
+   /// <summary>
+   /// Implements <see cref="IUnion"/>, which provides a common generic interface
+   /// in a union type order agnostic manner. Mainly useful in generics `where TUnion : IUnion`.
+   /// </summary>
    ImplementCommonInterface = 1 << 7,
 
-   // <summary>
-   // Explicitly implements the generic IUnion  interface.
-   // </summary>
+   /// <summary>
+   /// Explicitly implements the generic IUnion<...T> interface.
+   /// </summary>
    ImplementGenericInterface = 1 << 8,
 };
 public static class UnionImplOptionsExtenions {
@@ -164,15 +165,61 @@ public static class VisibilityExtensions {
    }
 }
 
+/// <summary>
+/// Provides a uniform interface for querying, reading, and writing the contained value generically.
+/// </summary>
 public interface IUnion {
-   bool CanHoldType<T>();
+#if NET7_0_OR_GREATER
+    /// <summary>
+    /// Returns <see langword="true"/> if <typeparamref name="T"/> is among the types this union
+    /// is declared to hold, regardless of its current state.
+    /// </summary>
+    abstract static bool CanHoldType<T>();
+
+    /// <summary>
+    /// Gets a value indicating whether the union is immutable after construction.
+    /// </summary>
+    abstract static bool IsReadOnly { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the union permits an empty state.
+    /// </summary>
+    abstract static bool IsNullable { get; }
+
+    /// <summary>
+    /// Gets the number of distinct types the union can hold.
+    /// </summary>
+    abstract static int TypeCount { get; }
+#endif
+
+   /// <summary>
+   /// Returns <see langword="true"/> if the currently stored value is of type <typeparamref name="T"/>.
+   /// </summary>
    bool HoldsType<T>();
-   bool IsReadOnly { get; }
-   bool IsNullable { get; }
+
+   /// <summary>
+   /// Gets the currently stored value boxed as <see cref="object"/>,
+   /// or <see langword="null"/> if the union is empty.
+   /// </summary>
    object? Value { get; }
+
+   /// <summary>
+   /// Gets a value indicating whether the union currently contains a value.
+   /// </summary>
    bool HasValue { get; }
-   int TypeCount {get;}
+
+   /// <summary>
+   /// Attempts to store <paramref name="value"/> in the union.
+   /// </summary>
    bool TrySetValue<T>(T value);
+
+   /// <summary>
+   /// Attempts to retrieve the stored value as <typeparamref name="T"/>.
+   /// </summary>
    bool TryGetValue<T>(out T value);
+
+   /// <summary>
+   /// Attempts to reset the union to an empty state.
+   /// </summary>
    bool TryClearValue();
 }

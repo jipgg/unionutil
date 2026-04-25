@@ -1,10 +1,13 @@
 using System.Diagnostics;
 namespace UnionUtil.Meta;
 
-ref struct SpanBuffer<T>(Span<T> buf) {
+readonly record struct ResolvedSource(string HintName, StringBuilder Source);
+
+ref struct SpanList<T>(Span<T> buf) {
    Span<T> _buf = buf;
    int _count;
 
+   public readonly bool IsEmpty => _count is 0;
    public readonly int Capacity => _buf.Length;
    public readonly int Count => _count;
    public readonly Span<T> Span => _buf.Slice(0, _count);
@@ -15,7 +18,9 @@ ref struct SpanBuffer<T>(Span<T> buf) {
       return true;
    }
    public void Add(T v) => _buf[_count++] = v;
+   public readonly Span<T>.Enumerator GetEnumerator() => _buf.Slice(0, _count).GetEnumerator();
 }
+
 static class SpanExtensions {
    extension<T>(Span<T> span) {
       public void Sort<TComparer>(TComparer comparer) where TComparer : IComparer<T> {
@@ -77,23 +82,28 @@ ref struct SpanDictionary<K, V>(Span<(K, V)> buf) {
    public readonly Span<(K, V)>.Enumerator GetEnumerator() => _buf.Slice(0, _count).GetEnumerator();
 }
 
-static class TypeSymbolExtensions {
-   static bool IsInUnionUtil(ITypeSymbol? symbol) {
+static class Helpers {
+   public static bool IsUnionUtil(ITypeSymbol? symbol) {
       if (symbol is null) return false;
       if (symbol.ContainingNamespace.IsGlobalNamespace) return false;
       return symbol.ContainingNamespace.ContainingNamespace.IsGlobalNamespace
          && symbol.ContainingNamespace?.MetadataName == "UnionUtil";
    }
+   public static bool IsUnionUtil(AttributeData? attributeData) => IsUnionUtil(attributeData?.AttributeClass);
+
+}
+
+static class TypeSymbolExtensions {
    extension(ITypeSymbol symbol) {
       public (ImmutableArray<ITypeSymbol>, bool ok) ResolveUnionTypeArgs() {
          var attr = symbol.GetAttributes()
-            .SingleOrDefault(static e => IsInUnionUtil(e.AttributeClass)
+            .SingleOrDefault(static e => Helpers.IsUnionUtil(e.AttributeClass)
                   && e.AttributeClass?.Name is Config.UnionType.AttributeName);
          if (attr?.AttributeClass is INamedTypeSymbol a) {
             return (a.TypeArguments, true);
          }
          var inter = symbol.Interfaces
-            .SingleOrDefault(static e => IsInUnionUtil(e)
+            .SingleOrDefault(static e => Helpers.IsUnionUtil(e)
                   && e.Arity is not 0
                   && e.Name is Config.UnionType.InterfaceName);
          if (inter is not null) {

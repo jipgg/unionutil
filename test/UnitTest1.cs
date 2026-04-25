@@ -77,15 +77,15 @@ public class MutableStructTests {
       };
       Assert.Equal("abc", x);
    }
-   static void TestCommonInterface<TUnion, T, U>(ref TUnion u, T v, U v2) where TUnion : IUnion where T : IEquatable<T> {
+   static void TestCommonInterface<TUnion, [FromUnion] T, [FromUnion] U>(ref TUnion u, T v, U v2) where TUnion : IUnion where T : IEquatable<T> {
       Assert.True(u.TryGetValue(out T x));
       Assert.True(u.HoldsType<T>());
       Assert.Equal(v, x);
-      Assert.True(u.CanHoldType<T>());
+      Assert.True(TUnion.CanHoldType<T>());
       Assert.True(u.TrySetValue((v2)));
       Assert.True(u.TryGetValue(out U x2));
       Assert.Equal(v2, x2);
-      Assert.True(u.CanHoldType<U>());
+      Assert.True(TUnion.CanHoldType<U>());
       Assert.True(u.HoldsType<U>());
    }
    [Fact]
@@ -134,7 +134,7 @@ public class MutableStructTests {
    [Fact]
    public void TestSetValue() {
       Union<int, Int128, double[]> u = 1;
-      TestUnion.Reassign(ref u, 1.0f, 10.0);
+      TestUnion.Reassign(ref u, 1, 10.0);
       Int128 x = new(123, 123);
       u.SetValue(x);
       Assert.True(u.TryGetValue(out Int128 u1));
