@@ -12,8 +12,11 @@ public enum MutableTag { Int = 9, Double = 1, Vector3 = -3 }
 
 [Tagged<MutableTag>]
 [UnionImpl(EnableNullable)]
-[Union<int, double, Vector3>]
+[CanHoldTypes<int, double, Vector3>]
 partial struct MutableStruct;
+
+[UnionImpl(WithHoldsTypeMethod)]
+partial struct ClassUnion<T, U, V> where T : class where U : class where V : class;
 
 [UnionImpl(BoxOpenGenerics | ImplementCommonInterface,
       FieldVisibility = Visibility.Internal), SmallBufferOptimized]
@@ -26,7 +29,14 @@ public enum Case { A, B, C, D, E, F, G }
 [Tagged<Case>("Case"), UnionImpl(
    FieldVisibility = Visibility.Internal
 )]
-public partial class BasicUnion<TA, TB, TC, TD, TE, TF, TG> : IUnion<TA, TB, TC, TD, TE, TF, TG>;
+public partial class BasicUnion<TA, TB, TC, TD, TE, TF, TG> : ICanHoldTypes<TA, TB, TC, TD, TE, TF, TG>;
+
+public static class ABc<T> where T: class {
+   static ClassUnion<T, Exception, List<int>> A = new Exception();
+   static void x() {
+      A.HoldsType<int>();
+   }
+}
 
 public class MutableStructTests {
    [Fact]
@@ -77,7 +87,7 @@ public class MutableStructTests {
       };
       Assert.Equal("abc", x);
    }
-   static void TestCommonInterface<TUnion, [FromUnion] T, [FromUnion] U>(ref TUnion u, T v, U v2) where TUnion : IUnion where T : IEquatable<T> {
+   static void TestCommonInterface<TUnion, [CanHold(nameof(TUnion))] T, [CanHold(nameof(TUnion))] U>(ref TUnion u, T v, U v2) where TUnion : IUnionType where T : IEquatable<T> {
       Assert.True(u.TryGetValue(out T x));
       Assert.True(u.HoldsType<T>());
       Assert.Equal(v, x);
@@ -117,7 +127,7 @@ public class MutableStructTests {
       Sbo7<int, double, Exception> sbo7 = 0.5;
       Assert.Equal(16, Unsafe.SizeOf<Sbo7<int, double, Exception>>());
       Assert.NotNull(sbo7._box);
-      IUnion sv = sbo7;
+      IUnionType sv = sbo7;
       Assert.True(sv.HoldsType<double>());
       Assert.False(sv.HoldsType<object>());
       Assert.True(sbo7.HoldsType<double>());

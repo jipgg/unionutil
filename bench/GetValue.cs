@@ -11,7 +11,7 @@ public readonly partial struct ReadOnlyBasicUnion<T, U, V, W>;
 public class GetValue<T> {
    public BasicUnion<T, double, int[], double[]> _union;
    public ReadOnlyBasicUnion<T, double, int[], double[]> _readOnly;
-   public IUnion _preboxed = default!;
+   public IUnionType _preboxed = default!;
 
    [GlobalSetup]
    public void Setup() {
@@ -68,7 +68,7 @@ public class GetValue<T> {
    }
    [Benchmark]
    public T? TryGetValue_Adapter() {
-      static T? Generic<U>(ref U u) where U : IUnion {
+      static T? Generic<U>(ref U u) where U : IUnionType {
          if (!u.TryGetValue(out T v)) return default;
          else return v;
       }
@@ -76,7 +76,7 @@ public class GetValue<T> {
    }
    [Benchmark]
    public T? Value_Adapter() {
-      static T? Generic<U>(ref U u) where U : IUnion {
+      static T? Generic<U>(ref U u) where U : IUnionType {
          if (u.Value is not T v) return default;
          else return v;
       }

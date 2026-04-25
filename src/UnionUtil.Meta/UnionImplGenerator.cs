@@ -215,7 +215,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          sb.Append($"{unionUtil}.{Config.UnionType.InterfaceName}<{string.Join(",", entries.Select(e => e.TypeName))}>,");
       }
       if (opts.Has(ImplementCommonInterface)) {
-         sb.Append($"{unionUtil}.{nameof(IUnion)},");
+         sb.Append($"{unionUtil}.{nameof(IUnionType)},");
       }
       --sb.Length;
    skip_interface_implementations:
@@ -471,7 +471,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
       """);
    skip_tag_property:
       if (!opts.Has(ImplementCommonInterface)) goto skip_implement_visitor;
-      const string @interface = $"{unionUtil}.{nameof(IUnion)}";
+      const string @interface = $"{unionUtil}.{nameof(IUnionType)}";
       var canHoldTypeExpr = string.Join("||", entries.Select(static e => $"typeof(Tx) == typeof({e.TypeName})"));
       sb.AppendLine($$"""
          [{{aggressiveInlining}}]

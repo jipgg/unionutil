@@ -92,7 +92,6 @@ static class Helpers {
    public static bool IsUnionUtil(AttributeData? attributeData) => IsUnionUtil(attributeData?.AttributeClass);
 
 }
-
 static class TypeSymbolExtensions {
    extension(ITypeSymbol symbol) {
       public (ImmutableArray<ITypeSymbol>, bool ok) ResolveUnionTypeArgs() {

@@ -25,7 +25,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
    static readonly DiagnosticDescriptor TypesCouldNotBeInferred = new(
       "UU0002",
       "types could not be inferred",
-      "could not infer types, mark them with 'IUnion' or 'UnionAttribute'",
+      $"could not infer types, mark them with '{Config.UnionType.InterfaceName}' or '{Config.UnionType.AttributeName}'",
       "Usage",
       DiagnosticSeverity.Error,
       true
@@ -46,10 +46,10 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       DiagnosticSeverity.Warning,
       true
    );
-   static readonly DiagnosticDescriptor WillNeverHoldType = new(
+   static readonly DiagnosticDescriptor CanNeverHoldType = new(
       "UU0005",
-      "will never hold type",
-      "will never hold type '{0}'",
+      "can never hold type",
+      "can never hold type '{0}'",
       "Usage",
       DiagnosticSeverity.Warning,
       true
@@ -60,61 +60,52 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       TypesCouldNotBeInferred,
       TagEnumNotExhaustive,
       MissingPartialKeyword,
-      WillNeverHoldType,
+      CanNeverHoldType,
    ];
 
-   static void HoldsTypeMethod(SyntaxNodeAnalysisContext ctx) {
-      var sm = ctx.SemanticModel;
-      var invocation = (InvocationExpressionSyntax)ctx.Node;
-      if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess) return;
-      if (memberAccess.Name.Identifier.Text is not "HoldsType") return;
-      if (sm.GetTypeInfo(memberAccess.Expression).Type is not INamedTypeSymbol symbol) return;
-      INamedTypeSymbol? @interface = null;
-      if (Helpers.IsUnionUtil(symbol) && symbol.Name is nameof(IUnion) && symbol.Arity is not 0) {
-         @interface = symbol;
-      }
-      if (@interface is null) {
-         @interface = symbol.Interfaces
-            .Where(e => Helpers.IsUnionUtil(e) && e.Name is nameof(IUnion) && symbol.Arity is not 0)
-            .FirstOrDefault();
-      }
-      if (@interface is null) return;
-      if (@interface.TypeArguments.OfType<ITypeParameterSymbol>().Any()) return;
-      switch (memberAccess.Name) {
-         case GenericNameSyntax syntax when syntax.Arity is 1:
-            var typeStx = syntax.TypeArgumentList.Arguments[0];
-            var type = sm.GetTypeInfo(typeStx).Type;
-            if (type is ITypeParameterSymbol or null) return;
-            foreach (var e in @interface.TypeArguments) {
-               if (e is ITypeParameterSymbol tp) {
-                  switch (tp) {
-                     case { HasValueTypeConstraint: true }:
-                        if (!type.IsValueType) continue;
-                        break;
-                     case { HasConstructorConstraint: true }:
-                        if (!type.IsValueType) continue;
-                        break;
-                     case { HasNotNullConstraint: true }:
-                        if (type.NullableAnnotation is NullableAnnotation.Annotated) continue;
-                        break;
-                     case { HasReferenceTypeConstraint: true }:
-                        if (!type.IsReferenceType) continue;
-                        break;
-                     case { HasUnmanagedTypeConstraint: true }:
-                        if (!type.IsUnmanagedType) continue;
-                        break;
-                     default:
-                        return;
-                  }
+static void HoldsTypeMethod(SyntaxNodeAnalysisContext ctx) {
+   var sm = ctx.SemanticModel;
+   var invocation = (InvocationExpressionSyntax)ctx.Node;
+   if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess) return;
+   if (memberAccess.Name.Identifier.Text is not "HoldsType") return;
+   if (sm.GetTypeInfo(memberAccess.Expression).Type is not INamedTypeSymbol symbol) return;
+   var (typeArgs, ok) = symbol.ResolveUnionTypeArgs();
+   if (typeArgs.Length is 0) return;
+   switch (memberAccess.Name) {
+      case GenericNameSyntax syntax when syntax.Arity is 1:
+         var typeStx = syntax.TypeArgumentList.Arguments[0];
+         var type = sm.GetTypeInfo(typeStx).Type;
+         if (type is ITypeParameterSymbol or null) return;
+         foreach (var e in typeArgs) {
+            if (e is ITypeParameterSymbol tp) {
+               switch (tp) {
+                  case { HasValueTypeConstraint: true }:
+                     if (type.IsValueType) return;
+                     continue;
+                  case { HasConstructorConstraint: true }:
+                     if (type.IsValueType) return;
+                     continue;
+                  case { HasNotNullConstraint: true }:
+                     if (type.NullableAnnotation is not NullableAnnotation.Annotated) return;
+                     continue;
+                  case { HasReferenceTypeConstraint: true }:
+                     if (type.IsReferenceType) return;
+                     continue;
+                  case { HasUnmanagedTypeConstraint: true }:
+                     if (type.IsUnmanagedType) return;
+                     continue;
+                  default:
+                     return;
                }
-               if (SymbolEqualityComparer.Default.Equals(type, e)) return;
             }
-            ctx.ReportDiagnostic(Diagnostic.Create(WillNeverHoldType, typeStx.GetLocation(), type));
-            break;
-         default:
-            break;
-      }
+            if (SymbolEqualityComparer.Default.Equals(type, e)) return;
+         }
+         ctx.ReportDiagnostic(Diagnostic.Create(CanNeverHoldType, typeStx.GetLocation(), type));
+         break;
+      default:
+         break;
    }
+}
    readonly record struct SymbolData(INamedTypeSymbol Sym, Location Loc);
    static void UnionDeclaration(SyntaxNodeAnalysisContext ctx) {
       var node = (TypeDeclarationSyntax)ctx.Node;
@@ -196,7 +187,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
          foreach (var c in tp.ConstraintTypes) {
             if (c is INamedTypeSymbol named
                && Helpers.IsUnionUtil(named)
-               && named.MetadataName is nameof(IUnion)
+               && named.MetadataName is nameof(IUnionType)
                && named.Arity is 0) {
                unionParamIndices[i] = i;
                break;
@@ -204,14 +195,14 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
          }
       }
 
-      // if (unionParamIndices.Count is 0) return;
+      if (unionParamIndices.Count is 0) return;
 
       for (int i = 0; i < original.TypeParameters.Length; ++i) {
          if (unionParamIndices.ContainsKey(i)) continue;
 
          var tp = original.TypeParameters[i];
          var fromUnion = tp.GetAttributes().FirstOrDefault(static a => Helpers.IsUnionUtil(a)
-            && a.AttributeClass!.Name is nameof(FromUnionAttribute));
+            && a.AttributeClass!.Name is nameof(CanHoldAttribute));
          if (fromUnion is null) continue;
 
          var ctorArgs = fromUnion.ConstructorArguments;
@@ -227,7 +218,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
          }
       }
 
-      if (fromUnionBindings.Count is 0 || unionParamIndices.Count is 0) return;
+      if (fromUnionBindings.Count is 0) return;
 
       foreach (var (vi, ui) in fromUnionBindings) {
          var resolvedUnion = method.TypeArguments[ui];
@@ -257,7 +248,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
                break;
             }
          }
-         ctx.ReportDiagnostic(Diagnostic.Create(WillNeverHoldType, loc, resolvedValue));
+         ctx.ReportDiagnostic(Diagnostic.Create(CanNeverHoldType, loc, resolvedValue));
       }
    }
 }

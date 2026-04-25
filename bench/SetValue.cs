@@ -12,7 +12,7 @@ public class SetValue {
    int _t5;
    Int128 _sameType;
    BasicUnion<byte, double, int[], Int128, int, float, nuint, double[]> _union;
-   IUnion _preboxed;
+   IUnionType _preboxed;
 #nullable restore
 
    [GlobalSetup]
@@ -73,7 +73,7 @@ public class SetValue {
    public void TrySetValue_Adapter_T5() {
       Generic(ref _union, _t5);
    }
-   static void Generic<U, T>(ref U u, T value) where U : IUnion {
+   static void Generic<U, T>(ref U u, T value) where U : IUnionType {
       u.TrySetValue(value);
    }
 }

@@ -7,15 +7,15 @@ using static UnionImplOptions;
 
 public enum Result { Ok, Err }
 
-[UnionImpl, Union<bool, Exception>, Tagged<Result>]
+[UnionImpl, CanHoldTypes<bool, Exception>, Tagged<Result>]
 partial struct ResultVoid;
 
 [Tagged<Result>, UnionImpl(FieldVisibility = Visibility.Internal)]
-public partial struct Result<T, E> : IUnion<T, E> where E : Exception;
+public partial struct Result<T, E> : ICanHoldTypes<T, E> where E : Exception;
 
 [UnionImpl(FieldVisibility = Visibility.Internal)]
 [Tagged<Result>]
-public partial struct Result<T> : IUnion<T, Exception> {
+public partial struct Result<T> : ICanHoldTypes<T, Exception> {
    [MethodImpl(AggressiveInlining)]
    public static implicit operator Result<T, Exception>(Result<T> result) {
       return Unsafe.As<Result<T>, Result<T, Exception>>(ref result);
@@ -30,13 +30,13 @@ public partial struct Result<T> : IUnion<T, Exception> {
    BoxManagedStructs | BoxOpenGenerics | WithHoldsTypeMethod,
    FieldVisibility = Visibility.Internal
 )]
-public partial struct BoxedResult<T, E> : IUnion<T, E> where E : Exception;
+public partial struct BoxedResult<T, E> : ICanHoldTypes<T, E> where E : Exception;
 
 [Tagged<Result>, UnionImpl(
       BoxManagedStructs | BoxOpenGenerics | WithHoldsTypeMethod,
       FieldVisibility = Visibility.Internal
 )]
-public partial struct BoxedResult<T> : IUnion<T, Exception> {
+public partial struct BoxedResult<T> : ICanHoldTypes<T, Exception> {
    [MethodImpl(AggressiveInlining)]
    public static implicit operator BoxedResult<T, Exception>(BoxedResult<T> result) {
       return Unsafe.As<BoxedResult<T>, BoxedResult<T, Exception>>(ref result);
@@ -50,21 +50,21 @@ public partial struct BoxedResult<T> : IUnion<T, Exception> {
    EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementCommonInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(23)]
-public partial struct Sbo23<T1, T2, T3> : IUnion<T1, T2, T3>;
+public partial struct Sbo23<T1, T2, T3> : ICanHoldTypes<T1, T2, T3>;
 [UnionImpl(
    EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementCommonInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(55)]
-public partial struct Sbo55<T1, T2, T3> : IUnion<T1, T2, T3>;
+public partial struct Sbo55<T1, T2, T3> : ICanHoldTypes<T1, T2, T3>;
 [UnionImpl(
    EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementCommonInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(15)]
-public partial struct Sbo15<T1, T2, T3> : IUnion<T1, T2, T3>;
+public partial struct Sbo15<T1, T2, T3> : ICanHoldTypes<T1, T2, T3>;
 [UnionImpl(EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementCommonInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized<SBO7>]
-public partial struct Sbo7<T1, T2, T3> : IUnion<T1, T2, T3>;
+public partial struct Sbo7<T1, T2, T3> : ICanHoldTypes<T1, T2, T3>;
 [InlineArray(7)]
 public struct SBO7 : ISmallBuffer {
    byte _element0;

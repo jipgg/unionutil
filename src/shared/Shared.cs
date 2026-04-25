@@ -46,7 +46,7 @@ public sealed class SmallBufferOptimizedAttribute<TSmallBuffer>() : Attribute wh
 #endif
 
 [AttributeUsage(AttributeTargets.GenericParameter)]
-public sealed class FromUnionAttribute(string? typeParamName = null) : Attribute;
+public sealed class CanHoldAttribute(string? typeParamNameOfUnion = null) : Attribute;
 
 /// <summary>
 /// Adds a strongly-typed tag field to the generated union and
@@ -137,7 +137,7 @@ public enum UnionImplOptions : uint {
    WithExplicitConversionsToValue = 1 << 6,
 
    /// <summary>
-   /// Implements <see cref="IUnion"/>, which provides a common generic interface
+   /// Implements <see cref="IUnionType"/>, which provides a common generic interface
    /// in a union type order agnostic manner. Mainly useful in generics `where TUnion : IUnion`.
    /// </summary>
    ImplementCommonInterface = 1 << 7,
@@ -168,7 +168,7 @@ public static class VisibilityExtensions {
 /// <summary>
 /// Provides a uniform interface for querying, reading, and writing the contained value generically.
 /// </summary>
-public interface IUnion {
+public interface IUnionType {
 #if NET7_0_OR_GREATER
     /// <summary>
     /// Returns <see langword="true"/> if <typeparamref name="T"/> is among the types this union
