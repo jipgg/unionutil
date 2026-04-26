@@ -7,71 +7,65 @@ namespace UnionUtil.Meta;
 using static UnionImplOptions;
 using static SymbolDisplayFormat;
 
+enum Strategy : byte { Box, Sequential, Overlap };
+enum Kind : byte { Unmanaged, Open, Reference, Value, Interface };
+readonly record struct StorageEntry(int TypeIndex, string TypeName, Kind Kind, Strategy Strategy);
+readonly struct Storage(StorageEntry[] entries) : IEquatable<Storage> {
+   public readonly StorageEntry[] Entries = entries;
+   public bool Equals(Storage other) => Entries.AsSpan().SequenceEqual(other.Entries);
+}
+enum Sbo : byte { Disabled = default, Size = 1, Name = 2 }
+readonly record struct SmallBufferOptimized(Sbo Tag, uint Size, string Name);
+readonly record struct Tagged(string EnumTypeName, string PropertyName, string[] Names, bool IsDense) {
+   public string? this[int typeIndex] => Names[(int)typeIndex - 1];
+}
+sealed record UnionImplResult(
+   string? Namespace,
+   string TypeName,
+   string T,
+   SyntaxKind Kind,
+   UnionImplOptions Options,
+   Storage StorageTypes,
+   Tagged? Tagged,
+   SmallBufferOptimized SmallBufferOptimized,
+   Visibility FieldVisibility,
+   bool Ok = true
+);
+
 [Generator(LanguageNames.CSharp)]
 public sealed class UnionImplGenerator : IIncrementalGenerator {
+   static bool Predicate(SyntaxNode node, CancellationToken token) {
+      if (node.Kind() is not (SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration)) {
+         return false;
+      }
+      if (((TypeDeclarationSyntax)node).AttributeLists.Count > 0) return true;
+      return false;
+   }
    public void Initialize(IncrementalGeneratorInitializationContext ctx) {
-      var provider = ctx.SyntaxProvider.ForAttributeWithMetadataName($"{nameof(UnionUtil)}.{nameof(UnionImplAttribute)}",
-               static (node, token) => node switch {
-                  ClassDeclarationSyntax { AttributeLists.Count: > 0 } => true,
-                  StructDeclarationSyntax { AttributeLists.Count: > 0 } => true,
-                  _ => false,
-               }, Resolve).Where(e => e != default);
-      ctx.RegisterSourceOutput(provider, static (ctx, res) => {
-         if (res.err is not Unresolved.Default) goto report_error;
-         if (res.ok is null) return;
-         GenerateSource(ctx, res.ok);
-         return;
-      report_error:
-         var msg = $"{res.err}";
-         var desc = new DiagnosticDescriptor(msg, msg, msg, "Generator", DiagnosticSeverity.Error, true);
-         ctx.ReportDiagnostic(Diagnostic.Create(desc, Location.None));
-         return;
+      var provider = ctx.SyntaxProvider.ForAttributeWithMetadataName(
+            $"{nameof(UnionUtil)}.{nameof(UnionImplAttribute)}",
+            // static (node, token) => node switch {
+            //    ClassDeclarationSyntax { AttributeLists.Count: > 0 } => true,
+            //    StructDeclarationSyntax { AttributeLists.Count: > 0 } => true,
+            //    _ => false,
+            Predicate, Resolve).Where(static e => e?.Ok is true);
+      ctx.RegisterSourceOutput(provider, static (ctx, result) => {
+         Debug.Assert(result!.Ok is true);
+         var (hintName, sb) = ResolveSource(result);
+         ctx.AddSource(hintName, sb.ToString());
       });
    }
-   enum Strategy : byte { Box, Sequential, Overlap };
-   enum Kind : byte { Unmanaged, Open, Reference, Value, Interface };
-   readonly record struct StorageEntry(int TypeIndex, string TypeName, Kind Kind, Strategy Strategy);
-   readonly struct Storage(StorageEntry[] entries) : IEquatable<Storage> {
-      public readonly StorageEntry[] Entries = entries;
-      public bool Equals(Storage other) => Entries.AsSpan().SequenceEqual(other.Entries);
-   }
-   enum Sbo : byte { Disabled = default, Size = 1, Name = 2 }
-   readonly record struct SmallBufferOptimized(Sbo Tag, uint Size, string Name);
-   readonly record struct Tagged(string EnumTypeName, string PropertyName, string[] Names, bool IsDense) {
-      public string? this[int typeIndex] => Names[(int)typeIndex - 1];
-   }
-   sealed record Resolved(
-      string? Namespace,
-      string TypeName,
-      string T,
-      SyntaxKind Kind,
-      UnionImplOptions Options,
-      Storage StorageTypes,
-      Tagged? Tagged,
-      SmallBufferOptimized SmallBufferOptimized,
-      Visibility FieldVisibility
-   );
-   enum Unresolved {
-      Default = default,
-      MissingConstructorArgument,
-      MissingTypesMarker,
-      MissingPartialKeyword,
-   }
-   static (Resolved? ok, Unresolved err) Resolve(GeneratorAttributeSyntaxContext ctx, CancellationToken token) {
-      if (ctx.TargetSymbol is not INamedTypeSymbol symbol) return default;
+   static UnionImplResult? Resolve(GeneratorAttributeSyntaxContext ctx, CancellationToken token) {
+      if (ctx.TargetSymbol is not INamedTypeSymbol symbol) return null;
       var node = (TypeDeclarationSyntax)ctx.TargetNode;
-      if (!node.Modifiers.Any(SyntaxKind.PartialKeyword)) {
-         return (null, Unresolved.MissingPartialKeyword);
-      }
+      if (!node.Modifiers.Any(SyntaxKind.PartialKeyword)) return null;
       var attr = ctx.Attributes[0];
       var symbolAttributes = symbol.GetAttributes();
-      if (attr.ConstructorArguments.Length is 0) {
-         return (null, Unresolved.MissingConstructorArgument);
-      }
+      if (attr.ConstructorArguments.Length is 0) return null;
       var opts = (UnionImplOptions)attr.ConstructorArguments[0].Value!;
-      var boxGenerics = opts.HasFlag(UnionImplOptions.BoxOpenGenerics);
-      var boxStructs = opts.HasFlag(BoxManagedStructs);
-      bool? mutable = opts.HasFlag(UnionImplOptions.ReadOnlyEnabled) ? false : null;
+      var boxGenerics = opts.Has(UnionImplOptions.BoxOpenGenerics);
+      var boxStructs = opts.Has(BoxManagedStructs);
+      bool? mutable = opts.Has(UnionImplOptions.EnableReadOnly) ? false : null;
       const string sboAttr = nameof(SmallBufferOptimizedAttribute);
       SmallBufferOptimized sbo = default;
       Debug.Assert(sbo.Tag is Sbo.Disabled);
@@ -91,30 +85,16 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          sbo = new SmallBufferOptimized(Sbo.Size, sboSize, default!);
       }
    sbo_done:
-      if (opts.HasFlag(UnionImplOptions.ReadOnlyEnabled)) goto skip_readonly;
-      if (ctx.TargetNode is not StructDeclarationSyntax sds) goto skip_readonly;
-      if (!sds.Modifiers.Any(SyntaxKind.ReadOnlyKeyword)) goto skip_readonly;
-      opts |= UnionImplOptions.ReadOnlyEnabled;
+      if (opts.Has(UnionImplOptions.EnableReadOnly)) goto skip_readonly;
+      if (ctx.TargetNode is not StructDeclarationSyntax sds) goto skip_readonly; if (!sds.Modifiers.Any(SyntaxKind.ReadOnlyKeyword)) goto skip_readonly;
+      opts |= UnionImplOptions.EnableReadOnly;
    skip_readonly:
-      const string unionTypesName = Meta.Configuration.UnionType.Name;
-      var unionTypes = symbol.Interfaces
-         .Where(e => e.Name is $"I{unionTypesName}")
-         .FirstOrDefault();
-      StorageEntry[] resolvedTypeArgs;
-      if (unionTypes is not null) goto resolve_union_types;
-      unionTypes = symbol.GetAttributes()
-         .Where(e => e.AttributeClass?.Name is $"{unionTypesName}Attribute")
-         .Select(e => e.AttributeClass)
-         .FirstOrDefault();
-      if (unionTypes is null) {
-         return (null, Unresolved.MissingTypesMarker);
-      }
-   resolve_union_types:
-      var targs = unionTypes.TypeArguments;
-      resolvedTypeArgs = new StorageEntry[targs.Length];
-      for (int i = 0; i < targs.Length; ++i) {
+      var (typeArgs, ok) = symbol.ResolveUnionTypeArgs();
+      if (!ok || typeArgs.Length is 0) return default;
+      var storageEntries = new StorageEntry[typeArgs.Length];
+      for (int i = 0; i < typeArgs.Length; ++i) {
          int index = i + 1;
-         var curr = targs[i];
+         var curr = typeArgs[i];
          Kind kind;
          if (curr is ITypeParameterSymbol tps) {
             kind = tps switch {
@@ -135,25 +115,27 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
                { IsReferenceType: true } => Kind.Reference,
                _ => default,
             };
-            // to resolve base
-            if (curr is INamedTypeSymbol { IsReferenceType: true } named) {
-               INamedTypeSymbol? @base = symbol;
-               while ((@base = @base.BaseType) != null) {
-                  if (SymbolEqualityComparer.Default.Equals(@base, named)) {
-                     kind = Kind.Interface;
-                     break;
-                  }
-               }
-            }
+            if (symbol.IsDerivedFrom(curr)) kind = Kind.Interface;
          }
-         var strategy = kind switch {
-            Kind.Reference or Kind.Interface => Strategy.Box,
-            Kind.Unmanaged => Strategy.Overlap,
-            Kind.Value => boxStructs ? Strategy.Box : Strategy.Sequential,
-            Kind.Open => boxGenerics ? Strategy.Box : Strategy.Sequential,
-            _ => throw new InvalidOperationException(),
-         };
-         resolvedTypeArgs[i] = new(index, curr.ToDisplayString(FullyQualifiedFormat), kind, strategy);
+         Strategy strategy;
+         switch (kind) {
+            case Kind.Reference or Kind.Interface:
+               strategy = Strategy.Box;
+               break;
+            case Kind.Unmanaged:
+               if (symbol.IsGenericType) goto case Kind.Value;
+               strategy = Strategy.Overlap;
+               break;
+            case Kind.Value:
+               strategy = boxStructs ? Strategy.Box : Strategy.Sequential;
+               break;
+            case Kind.Open:
+               strategy = boxGenerics ? Strategy.Box : Strategy.Sequential;
+               break;
+            default:
+               throw new InvalidOperationException();
+         }
+         storageEntries[i] = new(index, curr.ToDisplayString(FullyQualifiedFormat), kind, strategy);
       }
       Tagged? resolvedTagged = default;
       var tagged = symbol.GetAttributes()
@@ -173,63 +155,58 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          }
       }
       string[] names = [.. members.Select(static e => e.Name)];
-      if (names.Length != resolvedTypeArgs?.Length) {
-         return (null, Unresolved.MissingTypesMarker);
-      }
+      if (names.Length < storageEntries.Length) return default;
       var tagName = (string)tagged.ConstructorArguments[0].Value!;
       var tagEnum = tag.ToDisplayString(FullyQualifiedFormat);
       resolvedTagged = new Tagged(tagEnum, tagName, names, isDense);
    skip_tagged:
       var ns = symbol.ContainingNamespace;
-      return (new Resolved(
+      return new UnionImplResult(
          Options: opts,
          TypeName: symbol.Name,
          T: symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
          Kind: ctx.TargetNode.Kind(),
          Namespace: ns.IsGlobalNamespace ? null : ns.ToDisplayString(),
-         StorageTypes: new(resolvedTypeArgs),
+         StorageTypes: new(storageEntries),
          Tagged: resolvedTagged,
          FieldVisibility: attr.NamedArguments
             .Where(static e => e.Key is nameof(UnionImplAttribute.FieldVisibility))
             .Select(static e => (Visibility)e.Value.Value!)
             .SingleOrDefault(),
          SmallBufferOptimized: sbo
-      ), default);
+      );
    }
-
-   static void GenerateSource(SourceProductionContext ctx, UnionImplGenerator.Resolved args) {
-      const string compilerServices = "global::System.Runtime.CompilerServices";
-      const string aggressiveInlining = $"{compilerServices}.MethodImpl({compilerServices}.MethodImplOptions.AggressiveInlining)";
-      const string @unsafe = $"{compilerServices}.Unsafe";
-      const string objectField = "_box";
-      const string overlappedField = "_overlap";
-      const string overlappedType = "OverlappedStorage";
-      const string sboField = "_sbo";
-      const string fallbackSboType = "SmallBufferStorage";
-      const string indexField = "_index";
-      const string codeAnalysis = "global::System.Diagnostics.CodeAnalysis";
-      const string unscopedRef = $"{codeAnalysis}.UnscopedRef";
-      const string interopServices = "global::System.Runtime.InteropServices";
-      const string invalidOperationException = "global::System.InvalidOperationException";
-      const string unionUtil = "global::UnionUtil";
-      const string iSmallBUffer = $"{unionUtil}.ISmallBuffer";
-      const string iUnion = $"{unionUtil}.IUnion";
-      const string genericHelpers = $"global::UnionUtil.OpenGenericHelpers";
-      static string ghBox(string type, string arg) => $"{genericHelpers}.Box<{type}>({arg})";
-      static string ghSboBox(string type, string sboType, string sbo, string obj, string arg)
-         => $"{genericHelpers}.Box<{type},{sboType}>(ref {@unsafe}.AsRef(in {sbo}), ref {obj}, {arg})";
-      static string ghRef(string type, string arg) => $"{genericHelpers}.Ref<{type}>(ref {arg})";
-      static string ghSboRef(string type, string sboType, string sbo, string obj) => $"{genericHelpers}.Ref<{type},{sboType}>(ref {sbo}, ref {obj})";
-      static string ghGet(string type, string arg) => $"{genericHelpers}.Get<{type}>({arg})";
-      static string ghSboGet(string type, string sboType, string sbo, string obj) => $"{genericHelpers}.Get<{type},{sboType}>(ref {@unsafe}.AsRef(in {sbo}), {obj})";
-      static string fieldName(in StorageEntry s) {
-         return $"_{s.TypeIndex}";
-      }
-
+   const string compilerServices = "global::System.Runtime.CompilerServices";
+   const string aggressiveInlining = $"{compilerServices}.MethodImpl({compilerServices}.MethodImplOptions.AggressiveInlining)";
+   const string @unsafe = $"{compilerServices}.Unsafe";
+   const string objectField = "_box";
+   const string overlappedField = "_overlap";
+   const string overlappedType = "OverlappedStorage";
+   const string sboField = "_sbo";
+   const string fallbackSboType = "SmallBufferStorage";
+   const string indexField = "_index";
+   const string codeAnalysis = "global::System.Diagnostics.CodeAnalysis";
+   const string unscopedRef = $"{codeAnalysis}.UnscopedRef";
+   const string interopServices = "global::System.Runtime.InteropServices";
+   const string invalidOperationException = "global::System.InvalidOperationException";
+   const string unionUtil = "global::UnionUtil";
+   const string iSmallBUffer = $"{unionUtil}.ISmallBuffer";
+   const string genericHelpers = $"global::UnionUtil.OpenGenericHelpers";
+   static string GenericHelpersBox(string type, string arg) => $"{genericHelpers}.Box<{type}>({arg})";
+   static string GenericHelpersSboBox(string type, string sboType, string sbo, string obj, string arg)
+      => $"{genericHelpers}.Box<{type},{sboType}>(ref {@unsafe}.AsRef(in {sbo}), ref {obj}, {arg})";
+   static string GenericHelpersRef(string type, string arg) => $"{genericHelpers}.Ref<{type}>(ref {arg})";
+   static string GenericHelpersSboRef(string type, string sboType, string sbo, string obj) => $"{genericHelpers}.Ref<{type},{sboType}>(ref {sbo}, ref {obj})";
+   static string GenericHelpersGet(string type, string arg) => $"{genericHelpers}.Get<{type}>({arg})";
+   static string GenericHelpersSboGet(string type, string sboType, string sbo, string obj) => $"{genericHelpers}.Get<{type},{sboType}>(ref {@unsafe}.AsRef(in {sbo}), {obj})";
+   static string FieldName(in StorageEntry s) {
+      return $"_{s.TypeIndex}";
+   }
+   static ResolvedSource ResolveSource(UnionImplResult args) {
       var sb = new StringBuilder(2048);
       var opts = args.Options;
-      var isReadOnly = opts.Enabled(ReadOnlyEnabled);
-      var isNullable = opts.Enabled(NullableEnabled);
+      var isReadOnly = opts.Has(EnableReadOnly);
+      var isNullable = opts.Has(EnableNullable);
       sb.AppendLine("#nullable enable");
       if (args.Namespace is string ns) {
          sb.AppendLine($"namespace {ns};");
@@ -249,13 +226,15 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
             throw new InvalidOperationException();
       }
       var entries = args.StorageTypes.Entries;
-      sb.Append(args.T).Append(" : ");
-      sb.Append($"{iUnion}<{string.Join(",", entries.Select(e => e.TypeName))}>, {iUnion}");
+      sb.Append(args.T);
+      if (opts.Has(ImplementUnionInterfaces)) {
+         sb.Append($":{unionUtil}.{nameof(IUnionType)},{unionUtil}.{Config.UnionType.HasTypeCountName}{entries.Length}");
+      }
       sb.AppendLine(" {");
       var visibility = args.FieldVisibility.Keyword;
       var readonlyFieldMod = isReadOnly ? " readonly" : " ";
-      (int, string)[] getValueExprs = [];
-      (int, string)[] clearExprs = [];
+      using var getValueExprs = new SpanList<(int, string)>(entries.Length);
+      using var clearExprs = new SpanList<(int, string)>(entries.Length);
       void writeConstructor(in StorageEntry arg, string assign) {
          sb.AppendLine($$"""
             [{{aggressiveInlining}}]
@@ -264,7 +243,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
                {{indexField}} = {{arg.TypeIndex}};
             }
          """);
-         if (opts.Enabled(NoImplicitConversions)) return;
+         if (opts.Has(NoImplicitConversions)) return;
          if (arg.Kind is not Kind.Interface) sb.AppendLine($$"""
             [{{aggressiveInlining}}]
             public static implicit operator {{args.T}}({{arg.TypeName}} v) => new(v);
@@ -283,7 +262,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
                }
             }
          """);
-         if (opts.Enabled(ExplicitlyConvertibleToValue) is false) return;
+         if (opts.Has(WithExplicitConversionsToValue) is false) return;
          if (arg.Kind is Kind.Interface) return;
          sb.AppendLine($$"""
             public static explicit operator {{arg.TypeName}}({{args.T}} u) {
@@ -291,17 +270,17 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
             }
          """);
       }
-      void writeSetValue(in StorageEntry arg, string assign) {
+      void writeSetValue(in StorageEntry arg, string refExpr, string setExpr) {
          if (isReadOnly) return;
          sb.AppendLine($$"""
             [{{aggressiveInlining}}]
             public void SetValue({{arg.TypeName}} v) {
                if ({{indexField}} is {{arg.TypeIndex}}) {
-                  {{assign}} = v;
+                  {{refExpr}} = v;
                   return;
                }
                ClearValue();
-               {{assign}} = v;
+               {{setExpr}};
                {{indexField}} = {{arg.TypeIndex}};
             }
          """);
@@ -328,11 +307,24 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          if (expr is not null) sb.Append(" = ").Append(expr);
          sb.AppendLine(";");
       }
-      StorageEntry[] toOverlap = [.. entries.Where(static e => e.Strategy == Strategy.Overlap)];
-      StorageEntry[] toBox = [.. entries.Where(static e => e.Strategy is Strategy.Box)];
+      var toOverlap = new SpanList<StorageEntry>(entries.Length);
+      var toBox = new SpanList<StorageEntry>(entries.Length);
+      var sequential = new SpanList<StorageEntry>(entries.Length);
+      foreach (var e in entries) {
+         switch (e.Strategy) {
+            case Strategy.Overlap:
+               toOverlap.Add(e);
+               break;
+            case Strategy.Box:
+               toBox.Add(e);
+               break;
+            case Strategy.Sequential:
+               sequential.Add(e);
+               break;
+         }
+      }
       bool sboEnabled = args.SmallBufferOptimized.Tag is not Sbo.Disabled && toBox.Any(static e => e.Kind is Kind.Open or Kind.Value && e.Strategy is Strategy.Box);
-      // setting up the fields first
-      if (toBox.Length is not 0) writeField("object?", objectField, "default");
+      if (toBox.Count is not 0) writeField("object?", objectField, "default");
       writeField("byte", indexField);
       string? TSbo = default;
       if (sboEnabled) {
@@ -344,32 +336,36 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          };
          writeField(TSbo, sboField, "default");
       }
-      if (toOverlap.Length is 0) goto skip_to_overlap;
+      if (toOverlap.Count is 0) goto skip_to_overlap;
       sb.AppendLine($$"""
             [{{interopServices}}.StructLayout({{interopServices}}.LayoutKind.Explicit)]
             {{visibility}} struct {{overlappedType}} {
          """);
       foreach (var e in toOverlap) sb.AppendLine($"""
                [{interopServices}.FieldOffset(0)]
-               public {e.TypeName} {fieldName(e)};
+               public {e.TypeName} {FieldName(e)};
          """);
       sb.AppendLine("   }");
       writeField(overlappedType, overlappedField, "default");
       foreach (var e in toOverlap) {
-         getValueExprs = [.. getValueExprs, (e.TypeIndex, $"{overlappedField}.{fieldName(e)}")];
-         writeConstructor(e, $"{overlappedField} = new() {{{fieldName(e)} = v}};");
-         writeTryGetValue(e, $"v = {overlappedField}.{fieldName(e)};");
-         writeSetValue(e, $"{overlappedField}.{fieldName(e)}");
-         writeProperties(e, $"{overlappedField}.{fieldName(e)}");
+         var field = $"{overlappedField}.{FieldName(e)}";
+         getValueExprs.Add((e.TypeIndex, field));
+         writeConstructor(e, $"{overlappedField} = new() {{{FieldName(e)} = v}};");
+         writeTryGetValue(e, $"v = {field};");
+         writeSetValue(e, field, $"{field} = v");
+         writeProperties(e, field);
       }
    skip_to_overlap:
-      if (toBox.Length is 0) goto skip_to_box;
+      if (toBox.Count is 0) goto skip_to_box;
       if (args.SmallBufferOptimized.Tag is Sbo.Size && TSbo is fallbackSboType) {
          var sbo = args.SmallBufferOptimized;
          sb.AppendLine($$"""
-            [{{compilerServices}}.InlineArray({{sbo.Size}})]
             {{visibility}} struct {{fallbackSboType}}: {{iSmallBUffer}} {
-               byte _element0;
+         #pragma warning disable CS0169
+               byte {{string.Join(",", Enumerable
+                     .Range(0, (int)sbo.Size)
+                     .Select(i => $"_element{i}"))}};
+         #pragma warning restore CS0169
                public static int Size {
                   [{{aggressiveInlining}}]
                   get => {{sbo.Size}};
@@ -384,41 +380,42 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
       }
       foreach (var e in toBox) {
          var T = (string)e.TypeName;
+         string box;
          if (e.Kind is Kind.Open && e.Strategy is Strategy.Box) {
-            if (TSbo is null) writeConstructor(e, $"{objectField} = {ghBox(T, "v")}");
-            else writeConstructor(e, $"{ghSboBox(T, TSbo, sboField, objectField, "v")}");
-         } else writeConstructor(e, $"{objectField} = v;");
+            if (TSbo is null) box = $"{objectField} = {GenericHelpersBox(T, "v")}";
+            else box = $"{GenericHelpersSboBox(T, TSbo, sboField, objectField, "v")}";
+         } else box = $"{objectField} = v;";
+         writeConstructor(e, box);
          var getExpr = e.Kind switch {
             Kind.Reference or Kind.Interface => $"{@unsafe}.As<{T}>({objectField}!)",
             Kind.Value or Kind.Unmanaged => $"{@unsafe}.Unbox<{T}>({objectField}!)",
-            _ => TSbo is not null ? ghSboGet(T, TSbo, sboField, objectField) : ghGet(T, objectField),
+            _ => TSbo is not null ? GenericHelpersSboGet(T, TSbo, sboField, objectField) : GenericHelpersGet(T, objectField),
          };
          var refExpr = e.Kind switch {
             Kind.Interface or Kind.Reference => $"{@unsafe}.As<object?,{T}>(ref {objectField}!)",
             Kind.Value or Kind.Unmanaged => $"{@unsafe}.Unbox<{T}>({objectField}!)",
-            _ => TSbo is not null ? ghSboRef(T, TSbo, sboField, objectField) : ghRef(T, objectField),
+            _ => TSbo is not null ? GenericHelpersSboRef(T, TSbo, sboField, objectField) : GenericHelpersRef(T, objectField),
          };
          writeProperties(e, getExpr);
          writeTryGetValue(e, $"v = {getExpr};");
-         writeSetValue(e, refExpr);
+         writeSetValue(e, refExpr, box);
          if (args.SmallBufferOptimized.Tag is Sbo.Disabled) {
-            clearExprs = [.. clearExprs, (e.TypeIndex, $"{objectField} = null")];
+            clearExprs.Add((e.TypeIndex, $"{objectField} = null"));
          }
-         getValueExprs = [.. getValueExprs, (e.TypeIndex, TSbo is not null ? ghSboGet(e.TypeName, TSbo, sboField, objectField) : objectField)];
+         getValueExprs.Add((e.TypeIndex, TSbo is not null ? GenericHelpersSboGet(e.TypeName, TSbo, sboField, objectField) : objectField));
       }
    skip_to_box:
-      StorageEntry[] sequential = [.. entries.Where(static e => e.Strategy is Strategy.Sequential)];
-      if (sequential.Length is 0) goto skip_sequential;
+      if (sequential.Count is 0) goto skip_sequential;
       foreach (var e in sequential) {
          var T = e.TypeName;
-         var holder = fieldName(e);
+         var holder = FieldName(e);
          sb.AppendLine($"  {visibility}{readonlyFieldMod} {T} {holder} = default!;");
-         getValueExprs = [.. getValueExprs, (e.TypeIndex, holder)];
+         getValueExprs.Add((e.TypeIndex, holder));
          writeConstructor(e, $"{holder} = v;");
          writeTryGetValue(e, $"v = {holder};");
          if (isReadOnly is false) {
-            writeSetValue(e, holder);
-            clearExprs = [.. clearExprs, (e.TypeIndex, $"{holder} = default!")];
+            writeSetValue(e, holder, $"{holder} = v");
+            clearExprs.Add((e.TypeIndex, $"{holder} = default!"));
          }
          writeProperties(e, holder);
       }
@@ -432,7 +429,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
       if (isNullable) {
          sb.AppendLine($"  public{ro} bool HasValue => {indexField} != 0;");
       }
-      if (!opts.Enabled(IncludeHoldsTypeMethod)) goto skip_include_holds_type_method;
+      if (!opts.Has(ImplementHoldsTypeMethod)) goto skip_include_holds_type_method;
       sb.AppendLine($$"""
          [{{aggressiveInlining}}]
          public{{ro}} bool HoldsType<Type>() => {{indexField}} switch {
@@ -448,7 +445,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          [{{aggressiveInlining}}]
          public void ClearValue() {
       """);
-      if (clearExprs.Length is 0) {
+      if (clearExprs.Count is 0) {
          sb.AppendLine("   }");
          goto skip_clear_value_method;
       }
@@ -499,17 +496,68 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          }
       """);
    skip_tag_property:
+      if (!opts.Has(ImplementUnionInterfaces)) goto skip_implement_union_type_interface;
+      const string @interface = $"{unionUtil}.{nameof(IUnionType)}";
+      var canHoldTypeExpr = string.Join("||", entries.Select(static e => $"typeof(Tx) == typeof({e.TypeName})"));
+      sb.AppendLine($$"""
+         [{{aggressiveInlining}}]
+         bool {{@interface}}.HoldsType<Tx>() => {{indexField}} switch {
+      """);
+      foreach (var e in entries) sb.AppendLine($"      {e.TypeIndex} => typeof(Tx) == typeof({e.TypeName}),");
+      sb.AppendLine($$"""
+            _ => false,
+         };
+      """);
+      if (isReadOnly) sb.AppendLine($"""
+            static bool {@interface}.IsReadOnly => true;
+      """);
+      if (isNullable) sb.AppendLine($"""
+            static bool {@interface}.IsNullable => true;
+      """);
+      if (opts.Has(BoxManagedStructs)) sb.AppendLine($"""
+            static bool {@interface}.BoxesManagedStructs => true;
+      """);
+      if (opts.Has(BoxOpenGenerics)) sb.AppendLine($"""
+            static bool {@interface}.BoxesOpenGenerics => true;
+      """);
+      if (args.SmallBufferOptimized.Tag is Sbo.Size) sb.AppendLine($"""
+            static int {@interface}.SmallBufferSize => {args.SmallBufferOptimized.Size};
+      """);
+      else if (args.SmallBufferOptimized.Tag is Sbo.Name) sb.AppendLine($"""
+            static int {@interface}.SmallBufferSize => {genericHelpers}.GetSmallBufferSize<{args.SmallBufferOptimized.Name}>();
+      """);
       sb.AppendLine($$"""
             [{{aggressiveInlining}}]
-            bool {{iUnion}}.TryGetValue<Type>(out Type value) {
+            static bool {{@interface}}.CanHoldType<Tx>() => {{canHoldTypeExpr}};
+            static int {{@interface}}.TypeCount => {{entries.Length}};
+            object? {{@interface}}.Value => Value;
+            bool {{@interface}}.HasValue => {{(isNullable ? "HasValue" : "true")}};
+            [{{aggressiveInlining}}]
+            bool {{@interface}}.TrySetValue<Tx>(Tx value) {
+         """);
+      if (!isReadOnly) {
+         foreach (var e in entries) {
+            sb.AppendLine($$"""
+               if (typeof(Tx) == typeof({{e.TypeName}})) {
+                  SetValue({{@unsafe}}.As<Tx, {{e.TypeName}}>(ref value));
+                  return true;
+               }
+         """);
+         }
+      }
+      sb.AppendLine($$"""
+               return false;
+            }
+            [{{aggressiveInlining}}]
+            bool {{@interface}}.TryGetValue<Tx>(out Tx value) {
                switch ({{indexField}}) {
          """);
       foreach (var e in entries) {
          sb.AppendLine($$"""
                   case {{e.TypeIndex}}:
-                     if (typeof(Type) != typeof({{e.TypeName}})) goto default;
+                     if (typeof(Tx) != typeof({{e.TypeName}})) goto default;
                      value = default!;
-                     return TryGetValue(out {{@unsafe}}.As<Type, {{e.TypeName}}>(ref value));
+                     return TryGetValue(out {{@unsafe}}.As<Tx, {{e.TypeName}}>(ref value));
          """);
       }
       sb.AppendLine($$"""
@@ -518,11 +566,16 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
                      return false;
                }
             }
+            [{{aggressiveInlining}}]
+            bool {{@interface}}.TryClearValue() {
+               {{(isReadOnly ? "return false;" : "ClearValue(); return true;")}}
+            }
          """);
+   skip_implement_union_type_interface:
       sb.Append('}');
       var hintName = args.T;
       if (args.Namespace is not null) hintName = $"{args.Namespace}.{args.T}.g";
       hintName = hintName.Replace("global::", "").Replace("<", "{").Replace(">", "}").Replace(" ", "");
-      ctx.AddSource(hintName, sb.ToString());
+      return new(hintName, sb);
    }
 }

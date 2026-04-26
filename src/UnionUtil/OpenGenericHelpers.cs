@@ -7,6 +7,10 @@ namespace UnionUtil;
 using static MethodImplOptions;
 
 public static class OpenGenericHelpers {
+   [MethodImpl(AggressiveInlining)]
+   public static int GetSmallBufferSize<TSmallBuffer>() where TSmallBuffer : ISmallBuffer {
+      return TSmallBuffer.Size;
+   }
    sealed class Boxed<T>(T item) {
       public T Item = item;
    }
@@ -21,7 +25,7 @@ public static class OpenGenericHelpers {
       else return v;
    }
    [MethodImpl(AggressiveInlining)]
-   public static void Box<T, TSbo>(ref TSbo sbo, ref object? obj, T v) where TSbo : ISmallBuffer, allows ref struct {
+   public static void Box<T, TSbo>(ref TSbo sbo, ref object? obj, T v) where TSbo : ISmallBuffer {
       if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>()) {
          var size = Unsafe.SizeOf<T>();
          if (size <= TSbo.Size) {
@@ -47,7 +51,7 @@ public static class OpenGenericHelpers {
       }
    }
    [MethodImpl(AggressiveInlining)]
-   public static T Get<T, TSbo>(ref TSbo sbo, object? v) where TSbo : ISmallBuffer, allows ref struct {
+   public static T Get<T, TSbo>(ref TSbo sbo, object? v) where TSbo : ISmallBuffer {
       if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>()) {
          if (Unsafe.SizeOf<T>() <= TSbo.Size) {
             return Unsafe.ReadUnaligned<T>(ref sbo.Data);
@@ -71,7 +75,7 @@ public static class OpenGenericHelpers {
       }
    }
    [MethodImpl(AggressiveInlining)]
-   public static ref T Ref<T, TSbo>(ref TSbo sbo, ref object? v) where TSbo : ISmallBuffer, allows ref struct {
+   public static ref T Ref<T, TSbo>(ref TSbo sbo, ref object? v) where TSbo : ISmallBuffer {
       if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>()) {
          if (Unsafe.SizeOf<T>() <= TSbo.Size) {
             return ref Unsafe.As<byte, T>(ref sbo.Data);

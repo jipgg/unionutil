@@ -1,4 +1,64 @@
-public struct MutableUnion<T1, T2, T3> {
+[MemoryDiagnoser, DisassemblyDiagnoser]
+[Orderer(SummaryOrderPolicy.FastestToSlowest)]
+[SimpleJob(RuntimeMoniker.Net10_0)]
+public class ModifyBoxed {
+   [Params(8, 32, 128)]
+   public int N;
+   [Benchmark]
+   public void Baseline_Int() {
+      Baseline<int, float, double> boxed = 1;
+      for (int i = 0; i < N; ++i) {
+         boxed.TryGetValue(out int x);
+         boxed.SetValue(x + i);
+      }
+   }
+   [Benchmark]
+   public void Generated_Int() {
+      Generated<int, float, double> boxed = 1;
+      for (int i = 0; i < N; ++i) {
+         boxed.TryGetValue(out int x);
+         boxed.SetValue(x + i);
+      }
+   }
+   [Benchmark]
+   public void Baseline_ManagedStruct() {
+      Baseline<ManagedStruct, float, double> boxed = new ManagedStruct { Object = null! };
+      for (int i = 0; i < N; ++i) {
+         boxed.TryGetValue(out ManagedStruct x);
+         x.Object = null!;
+         boxed.SetValue(x);
+      }
+   }
+   [Benchmark]
+   public void Generated_ManagedStruct() {
+      Generated<ManagedStruct, float, double> boxed = new ManagedStruct { Object = null! };
+      for (int i = 0; i < N; ++i) {
+         boxed.TryGetValue(out ManagedStruct x);
+         x.Object = null!;
+         boxed.SetValue(x);
+      }
+   }
+
+   [Benchmark]
+   public void Baseline_ListInt() {
+      Baseline<List<int>, float, double> boxed = new List<int>();
+      for (int i = 0; i < N; ++i) {
+         boxed.TryGetValue(out List<int> x);
+         boxed.SetValue(x);
+      }
+   }
+   [Benchmark]
+   public void Generated_ListInt() {
+      Generated<List<int>, float, double> boxed = new List<int>();
+      for (int i = 0; i < N; ++i) {
+         boxed.TryGetValue(out List<int> x);
+         boxed.SetValue(x);
+      }
+   }
+}
+[UnionImpl(BoxOpenGenerics)]
+partial struct Generated<T1, T2, T3>;
+public struct Baseline<T1, T2, T3> {
    object? _value;
    int _tag;
    public readonly object? Value {
@@ -43,21 +103,21 @@ public struct MutableUnion<T1, T2, T3> {
          _value = value;
       }
    }
-   public MutableUnion(T1 v) {
+   public Baseline(T1 v) {
       _value = v;
       _tag = 1;
    }
-   public MutableUnion(T2 v) {
+   public Baseline(T2 v) {
       _value = v;
       _tag = 2;
    }
-   public MutableUnion(T3 v) {
+   public Baseline(T3 v) {
       _value = v;
       _tag = 3;
    }
-   public static implicit operator MutableUnion<T1, T2, T3>(T1 v) => new(v);
-   public static implicit operator MutableUnion<T1, T2, T3>(T2 v) => new(v);
-   public static implicit operator MutableUnion<T1, T2, T3>(T3 v) => new(v);
+   public static implicit operator Baseline<T1, T2, T3>(T1 v) => new(v);
+   public static implicit operator Baseline<T1, T2, T3>(T2 v) => new(v);
+   public static implicit operator Baseline<T1, T2, T3>(T3 v) => new(v);
    public readonly bool HasValue {
       [MethodImpl(AggressiveInlining)]
       get => _tag is 0;
@@ -102,62 +162,4 @@ public struct MutableUnion<T1, T2, T3> {
 
 struct ManagedStruct {
    public object Object;
-}
-[MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net10_0)]
-[SimpleJob(RuntimeMoniker.NativeAot10_0)]
-public class ModifyBoxed {
-   [Params(8, 32, 128)]
-   public int N;
-   [Benchmark(Description = "union(int)")]
-   public void Union() {
-      MutableUnion<int, float, double> boxed = 1;
-      for (int i = 0; i < N; ++i) {
-         boxed.TryGetValue(out int x);
-         boxed.SetValue(x + i);
-      }
-   }
-   [Benchmark(Description = "generated(int)")]
-   public void Generated() {
-      Boxed<int, float, double> boxed = 1;
-      for (int i = 0; i < N; ++i) {
-         boxed.TryGetValue(out int x);
-         boxed.SetValue(x + i);
-      }
-   }
-   [Benchmark(Description = "union(struct(object))")]
-   public void UnionManagedStruct() {
-      MutableUnion<ManagedStruct, float, double> boxed = new ManagedStruct { Object = null! };
-      for (int i = 0; i < N; ++i) {
-         boxed.TryGetValue(out ManagedStruct x);
-         x.Object = null!;
-         boxed.SetValue(x);
-      }
-   }
-   [Benchmark(Description = "generated(struct(object))")]
-   public void GeneratedManaged() {
-      Boxed<ManagedStruct, float, double> boxed = new ManagedStruct { Object = null! };
-      for (int i = 0; i < N; ++i) {
-         boxed.TryGetValue(out ManagedStruct x);
-         x.Object = null!;
-         boxed.SetValue(x);
-      }
-   }
-
-   [Benchmark(Description = "union(List<int>)")]
-   public void UnionClass() {
-      MutableUnion<List<int>, float, double> boxed = new List<int>();
-      for (int i = 0; i < N; ++i) {
-         boxed.TryGetValue(out List<int> x);
-         boxed.SetValue(x);
-      }
-   }
-   [Benchmark(Description = "generated(List<int>)")]
-   public void GeneratedClass() {
-      Boxed<List<int>, float, double> boxed = new List<int>();
-      for (int i = 0; i < N; ++i) {
-         boxed.TryGetValue(out List<int> x);
-         boxed.SetValue(x);
-      }
-   }
 }

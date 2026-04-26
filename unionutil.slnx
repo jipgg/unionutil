@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/bench/">
     <Project Path="bench/Bench.csproj" />
+    <Project Path="bench/Meta/Bench.Meta.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/UnionUtil/UnionUtil.csproj" />
