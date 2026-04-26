@@ -38,20 +38,6 @@ public sealed class UnionTypesConfigGenerator : IIncrementalGenerator {
       if (UnionType.Namespace is string ns) {
          sb.AppendLine($"namespace {ns};");
       }
-      // sb.AppendLine($$"""
-      // public interface {{Config.AdapterName}} {
-      //    bool CanHoldType<T>();
-      //    bool HoldsType<T>();
-      //    bool IsReadOnly {get;}
-      //    bool IsNullable {get;}
-      //    object? Value {get;}
-      //    bool HasValue {get;}
-      //    int TypeCount {get;}
-      //    bool TrySetValue<T>(T value);
-      //    bool TryGetValue<T>(out T value);
-      //    bool TryClearValue();
-      // }
-      // """);
       var typeParams = new StringBuilder(typeParamsLength);
       for (int n = 1; n <= UnionType.Arity; ++n) {
          typeParams.Append('<');
@@ -60,15 +46,8 @@ public sealed class UnionTypesConfigGenerator : IIncrementalGenerator {
             typeParams.Append($"{ty(i)},");
          }
          typeParams[typeParams.Length - 1] = '>';
-         sb.AppendLine($$"""
-            public interface {{UnionType.InterfaceName}}{{typeParams}} {
-            """);
-         for (int i = 1; i <= n; ++i) {
-            sb.AppendLine($"""
-               bool TryGetValue(out {ty(i)} value);
-            """);
-         }
-         sb.AppendLine("}");
+         sb.AppendLine($"public interface {UnionType.HasTypeCountName}{n};");
+         sb.AppendLine($"public interface {UnionType.InterfaceName}{typeParams};");
          const string system = "global::System";
          const string attributeUsage = $"[{system}.AttributeUsage({system}.AttributeTargets.Struct | {system}.AttributeTargets.Class, AllowMultiple = false)]";
          sb.AppendLine(attributeUsage);
@@ -77,6 +56,6 @@ public sealed class UnionTypesConfigGenerator : IIncrementalGenerator {
          continue;
       }
 
-      ctx.AddSource($"UnionTypes.g", sb.ToString());
+      ctx.AddSource($"GeneratedUnionTypes.g", sb.ToString());
    }
 }

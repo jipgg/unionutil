@@ -1,8 +1,18 @@
 using UnionUtil;
+using UnionUtil.Extensions;
 namespace Test;
 
+// public static class SomethingA {
+//    static void Legal<TUnion, [CanHold(nameof(TUnion))] T, TOtherUnion>(ref TUnion u, T v) where TUnion : IUnionType where TOtherUnion : IUnionType {
+//    }
+//    static void Illegal<[CanHold] T>(T v) {
+//    }
+//    static void AlsoIllegal<TUnion, [CanHold(nameof(TUnion))] T>(ref TUnion u, T v) where TUnion : IUnionType {
+//    }
+// }
+
 public static class TestUnion {
-   public static void Reassign<TUnion, [CanHold] T, [CanHold] X>(ref TUnion u, T v, X y) where TUnion : IUnionType {
+   public static void Reassign<TUnion, [CanHold] T, [CanHold] X>(ref TUnion u, T v, X y) where TUnion : IUnionType, IHasTypeCount3 {
       Assert.True(TUnion.CanHoldType<T>());
       Assert.True(u.TrySetValue(v));
       Assert.True(u.HoldsType<T>());
@@ -13,5 +23,21 @@ public static class TestUnion {
       Assert.True(TUnion.CanHoldType<T>() && u.HoldsType<T>());
       Assert.True(u.TryGetValue(out T x));
       Assert.Equal(v, x);
+   }
+   public readonly record struct Metadata(
+      bool BoxesOpenGenerics,
+      bool BoxesManagedStructs,
+      bool IsReadOnly,
+      bool IsNullable,
+      int SmallBufferSize,
+      int TypeCount
+   );
+   public static void AssertSameMetadata<TUnion>(in TUnion u, Metadata expected) where TUnion: IUnionType {
+      Assert.Equal(expected.BoxesOpenGenerics, TUnion.BoxesOpenGenerics);
+      Assert.Equal(expected.BoxesManagedStructs, TUnion.BoxesManagedStructs);
+      Assert.Equal(expected.IsReadOnly, TUnion.IsReadOnly);
+      Assert.Equal(expected.IsNullable, TUnion.IsNullable);
+      Assert.Equal(expected.SmallBufferSize, TUnion.SmallBufferSize);
+      Assert.Equal(expected.TypeCount, TUnion.TypeCount);
    }
 }

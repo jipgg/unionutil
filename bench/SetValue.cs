@@ -1,4 +1,4 @@
-[UnionImpl(ImplementCommonInterface | BoxOpenGenerics | BoxManagedStructs,
+[UnionImpl(ImplementUnionInterfaces | BoxOpenGenerics | BoxManagedStructs,
       FieldVisibility = Visibility.Internal)]
 [SmallBufferOptimized]
 partial struct BasicUnion<T1, T2, T3, T4, T5, T6, T7, T8>;
@@ -30,11 +30,11 @@ public class SetValue {
       _union.SetValue(_t1);
    }
    [Benchmark]
-   public void TrySetValue_Adapter_T1_Preboxed() {
+   public void TrySetValue_UnionType_T1_Preboxed() {
       _preboxed.TrySetValue(_t1);
    }
    [Benchmark]
-   public void TrySetValue_Adapter_T1() {
+   public void TrySetValue_UnionType_T1() {
       Generic(ref _union, _t1);
    }
    [Benchmark]
@@ -42,11 +42,11 @@ public class SetValue {
       _union.SetValue(_t8);
    }
    [Benchmark]
-   public void TrySetValue_Adapter_T8_Preboxed() {
+   public void TrySetValue_UnionType_T8_Preboxed() {
       _preboxed.TrySetValue(_t8);
    }
    [Benchmark]
-   public void TrySetValue_Adapter_T8() {
+   public void TrySetValue_UnionType_T8() {
       Generic(ref _union, _t8);
    }
    [Benchmark]
@@ -54,11 +54,11 @@ public class SetValue {
       _union.SetValue(_sameType);
    }
    [Benchmark]
-   public void TrySetValue_Adapter_SameType_Preboxed() {
+   public void TrySetValue_UnionType_SameType_Preboxed() {
       _preboxed.TrySetValue(_sameType);
    }
    [Benchmark]
-   public void TrySetValue_Adapter_SameType() {
+   public void TrySetValue_UnionType_SameType() {
       Generic(ref _union, _sameType);
    }
    [Benchmark]
@@ -66,11 +66,11 @@ public class SetValue {
       _union.SetValue(_t5);
    }
    [Benchmark]
-   public void TrySetValue_Adapter_T5_Preboxed() {
+   public void TrySetValue_UnionType_T5_Preboxed() {
       _preboxed.TrySetValue(_t5);
    }
    [Benchmark]
-   public void TrySetValue_Adapter_T5() {
+   public void TrySetValue_UnionType_T5() {
       Generic(ref _union, _t5);
    }
    static void Generic<U, T>(ref U u, T value) where U : IUnionType {

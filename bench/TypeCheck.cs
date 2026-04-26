@@ -47,26 +47,26 @@ public class TypeCheck {
    }
 
    [Benchmark]
-   public bool HoldsType_Adapter() {
+   public bool HoldsType_UnionType() {
       static bool generic<T>(ref T v) where T: IUnionType {
          return v.HoldsType<int>();
       }
       return generic(ref _dense);
    }
    [Benchmark]
-   public bool HoldsType_Adapter_Preboxed() {
+   public bool HoldsType_UnionType_Preboxed() {
       return _preboxed.HoldsType<int>();
    }
 
 }
 public enum DenseCaseTag { T1, T2, T3 }
-[UnionImpl(WithHoldsTypeMethod | ImplementCommonInterface,
+[UnionImpl(ImplementHoldsTypeMethod | ImplementUnionInterfaces,
    FieldVisibility = Visibility.Internal),
    Tagged<DenseCaseTag>]
 public partial struct DenseCase<_T1, _T2, _T3> : ICanHoldTypes<_T1, _T2, _T3>;
 
 public enum SparseCaseTag { T1 = 123, T2 = -23, T3 = 5 }
-[UnionImpl(WithHoldsTypeMethod | ImplementCommonInterface,
+[UnionImpl(ImplementHoldsTypeMethod | ImplementUnionInterfaces,
    FieldVisibility = Visibility.Internal),
    Tagged<SparseCaseTag>]
 public partial struct SparseCase<_T1, _T2, _T3> : ICanHoldTypes<_T1, _T2, _T3>;

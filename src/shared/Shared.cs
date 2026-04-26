@@ -1,3 +1,5 @@
+#if !SHARED_SHARED_INCLUDE_GUARD
+#define SHARED_SHARED_INCLUDE_GUARD
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 using System;
@@ -46,7 +48,7 @@ public sealed class SmallBufferOptimizedAttribute<TSmallBuffer>() : Attribute wh
 #endif
 
 [AttributeUsage(AttributeTargets.GenericParameter)]
-public sealed class CanHoldAttribute(string? typeParamNameOfUnion = null) : Attribute;
+public sealed class CanHoldAttribute(string? typeParamNameOfUnion = null, bool unique = false) : Attribute;
 
 /// <summary>
 /// Adds a strongly-typed tag field to the generated union and
@@ -97,7 +99,7 @@ public enum UnionImplOptions : uint {
    /// <summary>
    /// Adds a `HoldsType&lt;T&gt;()` method.
    /// </summary>
-   WithHoldsTypeMethod = 1 << 0,
+   ImplementHoldsTypeMethod = 1 << 0,
    /// <summary>
    /// If enabled, open generics (without generic constraints) will be stored in a shared <see langword="object"/> field.
    /// Otherwise open generics will be stored sequentially.
@@ -137,15 +139,10 @@ public enum UnionImplOptions : uint {
    WithExplicitConversionsToValue = 1 << 6,
 
    /// <summary>
-   /// Implements <see cref="IUnionType"/>, which provides a common generic interface
-   /// in a union type order agnostic manner. Mainly useful in generics `where TUnion : IUnion`.
+   /// Implements <see cref="IUnionType"/> and tag interfaces like IHasTypeCountN, which provides a common generic interface
+   /// in a type order agnostic manner. Mainly useful in generics <code>where TUnion : <see cref="IUnionType"/></code>.
    /// </summary>
-   ImplementCommonInterface = 1 << 7,
-
-   /// <summary>
-   /// Explicitly implements the generic IUnion<...T> interface.
-   /// </summary>
-   ImplementGenericInterface = 1 << 8,
+   ImplementUnionInterfaces = 1 << 7,
 };
 public static class UnionImplOptionsExtenions {
    extension(UnionImplOptions opts) {
@@ -170,26 +167,29 @@ public static class VisibilityExtensions {
 /// </summary>
 public interface IUnionType {
 #if NET7_0_OR_GREATER
-    /// <summary>
-    /// Returns <see langword="true"/> if <typeparamref name="T"/> is among the types this union
-    /// is declared to hold, regardless of its current state.
-    /// </summary>
-    abstract static bool CanHoldType<T>();
+   virtual static bool BoxesOpenGenerics { get; } = false;
+   virtual static bool BoxesManagedStructs { get; } = false;
+   virtual static int SmallBufferSize { get; } = 0;
+   /// <summary>
+   /// Returns <see langword="true"/> if <typeparamref name="T"/> is among the types this union
+   /// is declared to hold, regardless of its current state.
+   /// </summary>
+   abstract static bool CanHoldType<T>();
 
-    /// <summary>
-    /// Gets a value indicating whether the union is immutable after construction.
-    /// </summary>
-    abstract static bool IsReadOnly { get; }
+   /// <summary>
+   /// Gets a value indicating whether the union is immutable after construction.
+   /// </summary>
+   virtual static bool IsReadOnly { get; } = false;
 
-    /// <summary>
-    /// Gets a value indicating whether the union permits an empty state.
-    /// </summary>
-    abstract static bool IsNullable { get; }
+   /// <summary>
+   /// Gets a value indicating whether the union permits an empty state.
+   /// </summary>
+   virtual static bool IsNullable { get; } = false;
 
-    /// <summary>
-    /// Gets the number of distinct types the union can hold.
-    /// </summary>
-    abstract static int TypeCount { get; }
+   /// <summary>
+   /// Gets the number of distinct types the union can hold.
+   /// </summary>
+   abstract static int TypeCount { get; }
 #endif
 
    /// <summary>
@@ -223,3 +223,4 @@ public interface IUnionType {
    /// </summary>
    bool TryClearValue();
 }
+#endif

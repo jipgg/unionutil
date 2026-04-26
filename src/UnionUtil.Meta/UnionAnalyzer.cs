@@ -5,6 +5,8 @@ namespace UnionUtil.Meta;
 
 using static SyntaxKind;
 
+// hot garbage code, should probably be refactored eventually
+// can probably be optimized quite a bit aswell
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class UnionAnalyzer : DiagnosticAnalyzer {
    public override void Initialize(AnalysisContext ctx) {
@@ -13,11 +15,12 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       ctx.RegisterSyntaxNodeAction(UnionDeclaration, StructDeclaration, ClassDeclaration);
       ctx.RegisterSyntaxNodeAction(HoldsTypeMethod, InvocationExpression);
       ctx.RegisterSyntaxNodeAction(GenericUnionMethod, InvocationExpression);
+      ctx.RegisterSyntaxNodeAction(CanHoldValidation, SyntaxKind.MethodDeclaration);
    }
    static readonly DiagnosticDescriptor MissingUnionImplMarker = new(
       "UU0001",
       "missing UnionImpl marker",
-      "'{0}' does nothing without marking with 'UnionUtil.UnionImplAttribute'",
+      $"'{{0}}' does nothing without marking with '{nameof(UnionImplAttribute)}'",
       "Usage",
       DiagnosticSeverity.Warning,
       true
@@ -33,7 +36,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
    static readonly DiagnosticDescriptor TagEnumNotExhaustive = new(
       "UU0003",
       "tag enum is not exhaustive",
-      "length of '{0}' does not match the count of possible union cases",
+      "length of '{0}' does not match the count of possible types the union can hold",
       "Usage",
       DiagnosticSeverity.Warning,
       true
@@ -49,7 +52,15 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
    static readonly DiagnosticDescriptor CanNeverHoldType = new(
       "UU0005",
       "can never hold type",
-      "can never hold type '{0}'",
+      "target union can never hold type '{0}'",
+      "Usage",
+      DiagnosticSeverity.Warning,
+      true
+   );
+   static readonly DiagnosticDescriptor TypeMustBeUnique = new(
+      "UU0008",
+      "type is not unique",
+      "target union type is not unique '{0}'",
       "Usage",
       DiagnosticSeverity.Warning,
       true
@@ -61,51 +72,54 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       TagEnumNotExhaustive,
       MissingPartialKeyword,
       CanNeverHoldType,
+      CanHoldBadSource,
+      CanHoldNoUnionSource,
+      TypeMustBeUnique,
    ];
 
-static void HoldsTypeMethod(SyntaxNodeAnalysisContext ctx) {
-   var sm = ctx.SemanticModel;
-   var invocation = (InvocationExpressionSyntax)ctx.Node;
-   if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess) return;
-   if (memberAccess.Name.Identifier.Text is not "HoldsType") return;
-   if (sm.GetTypeInfo(memberAccess.Expression).Type is not INamedTypeSymbol symbol) return;
-   var (typeArgs, ok) = symbol.ResolveUnionTypeArgs();
-   if (typeArgs.Length is 0) return;
-   switch (memberAccess.Name) {
-      case GenericNameSyntax syntax when syntax.Arity is 1:
-         var typeStx = syntax.TypeArgumentList.Arguments[0];
-         var type = sm.GetTypeInfo(typeStx).Type;
-         if (type is ITypeParameterSymbol or null) return;
-         foreach (var e in typeArgs) {
-            if (e is ITypeParameterSymbol tp) {
-               switch (tp) {
-                  case { HasValueTypeConstraint: true }:
-                     if (type.IsValueType) return;
-                     continue;
-                  case { HasConstructorConstraint: true }:
-                     if (type.IsValueType) return;
-                     continue;
-                  case { HasNotNullConstraint: true }:
-                     if (type.NullableAnnotation is not NullableAnnotation.Annotated) return;
-                     continue;
-                  case { HasReferenceTypeConstraint: true }:
-                     if (type.IsReferenceType) return;
-                     continue;
-                  case { HasUnmanagedTypeConstraint: true }:
-                     if (type.IsUnmanagedType) return;
-                     continue;
-                  default:
-                     return;
+   static void HoldsTypeMethod(SyntaxNodeAnalysisContext ctx) {
+      var sm = ctx.SemanticModel;
+      var invocation = (InvocationExpressionSyntax)ctx.Node;
+      if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess) return;
+      if (memberAccess.Name.Identifier.Text is not "HoldsType") return;
+      if (sm.GetTypeInfo(memberAccess.Expression).Type is not INamedTypeSymbol symbol) return;
+      var (typeArgs, _) = symbol.ResolveUnionTypeArgs();
+      if (typeArgs.Length is 0) return;
+      switch (memberAccess.Name) {
+         case GenericNameSyntax syntax when syntax.Arity is 1:
+            var typeStx = syntax.TypeArgumentList.Arguments[0];
+            var type = sm.GetTypeInfo(typeStx).Type;
+            if (type is ITypeParameterSymbol or null) return;
+            foreach (var e in typeArgs) {
+               if (e is ITypeParameterSymbol tp) {
+                  switch (tp) {
+                     case { HasValueTypeConstraint: true }:
+                        if (type.IsValueType) return;
+                        continue;
+                     case { HasConstructorConstraint: true }:
+                        if (type.IsValueType) return;
+                        continue;
+                     case { HasNotNullConstraint: true }:
+                        if (type.NullableAnnotation is not NullableAnnotation.Annotated) return;
+                        continue;
+                     case { HasReferenceTypeConstraint: true }:
+                        if (type.IsReferenceType) return;
+                        continue;
+                     case { HasUnmanagedTypeConstraint: true }:
+                        if (type.IsUnmanagedType) return;
+                        continue;
+                     default:
+                        return;
+                  }
                }
+               if (SymbolEqualityComparer.Default.Equals(type, e)) return;
             }
-            if (SymbolEqualityComparer.Default.Equals(type, e)) return;
-         }
-         ctx.ReportDiagnostic(Diagnostic.Create(CanNeverHoldType, typeStx.GetLocation(), type));
-         break;
-      default:
-         break;
+            ctx.ReportDiagnostic(Diagnostic.Create(CanNeverHoldType, typeStx.GetLocation(), type));
+            break;
+         default:
+            break;
+      }
    }
-}
    readonly record struct SymbolData(INamedTypeSymbol Sym, Location Loc);
    static void UnionDeclaration(SyntaxNodeAnalysisContext ctx) {
       var node = (TypeDeclarationSyntax)ctx.Node;
@@ -134,7 +148,7 @@ static void HoldsTypeMethod(SyntaxNodeAnalysisContext ctx) {
             case nameof(SmallBufferOptimizedAttribute):
                sboSymbol = new(e.AttributeClass, loc);
                break;
-            case "UnionAttribute":
+            case Config.UnionType.AttributeName:
                unionSymbol = new(e.AttributeClass, loc);
                break;
          }
@@ -173,82 +187,205 @@ static void HoldsTypeMethod(SyntaxNodeAnalysisContext ctx) {
 
       if (sm.GetSymbolInfo(invocation, ctx.CancellationToken).Symbol is not IMethodSymbol method) return;
       if (!method.IsGenericMethod) return;
-
+      method = method.GetConstructedReducedFrom() ?? method;
       var original = method.OriginalDefinition;
 
-      var minSize = original.TypeParameters.Length;
-      // may need a guard in the future for unhingedly long source generated type parameters
-      Span<(int, int)> buf = stackalloc (int, int)[minSize * 2];
-      var unionParamIndices = new SpanDictionary<int, int>(buf.Slice(0, minSize));
-      var fromUnionBindings = new SpanDictionary<int, int>(buf.Slice(minSize));
+      var typeParams = original.TypeParameters;
+      var typeArgs = method.TypeArguments;
 
-      for (int i = 0; i < original.TypeParameters.Length; ++i) {
-         var tp = original.TypeParameters[i];
+      if (original.ContainingType.IsExtension) {
+         typeParams = [.. original.ContainingType.TypeParameters, .. typeParams];
+         typeArgs = [.. method.ContainingType.TypeArguments, .. typeArgs];
+      }
+      if (typeParams.Length == 0) return;
+
+      using var unionParams = new SpanDictionary<int, ITypeParameterSymbol>(typeParams.Length);
+      using var canHoldParams = new SpanList<(int canHoldIdx, int unionIdx, AttributeData attrData, bool unique)>(typeParams.Length);
+
+      const int unresolved = -1;
+
+      for (int i = 0; i < typeParams.Length; i++) {
+         var tp = typeParams[i];
+
+         bool isUnion = false;
          foreach (var c in tp.ConstraintTypes) {
-            if (c is INamedTypeSymbol named
-               && Helpers.IsUnionUtil(named)
-               && named.MetadataName is nameof(IUnionType)
-               && named.Arity is 0) {
-               unionParamIndices[i] = i;
+            if (c is not INamedTypeSymbol named) continue;
+            if (!Helpers.IsUnionUtil(named)) continue;
+            if (named.MetadataName is not nameof(IUnionType)) continue;
+            unionParams.Add(i, tp);
+            isUnion = true;
+            break;
+         }
+         if (isUnion) continue;
+
+         AttributeData? canHoldAttr = null;
+         foreach (var attr in tp.GetAttributes()) {
+            if (!Helpers.IsUnionUtil(attr)) continue;
+            if (attr.AttributeClass!.MetadataName is not nameof(CanHoldAttribute)) continue;
+            canHoldAttr = attr;
+            break;
+         }
+         if (canHoldAttr is null) continue;
+         canHoldParams.Add((i, unresolved, canHoldAttr, default));
+      }
+
+      if (unionParams.Count is 0 || canHoldParams.Count is 0) return;
+
+      foreach (ref var u in canHoldParams) {
+         var sourceName = (string?)u.attrData.ConstructorArguments[0].Value;
+         u.unique = (bool)u.attrData.ConstructorArguments[1].Value!;
+         if (sourceName is null) {
+            // only valid if theres exactly 1 union param
+            if (unionParams.Count != 1) continue;
+            foreach (var (idx, _) in unionParams) {
+               u.unionIdx = idx;
                break;
             }
+            continue;
+         }
+         foreach (var (idx, tp) in unionParams) {
+            if (tp.Name != sourceName) continue;
+            u.unionIdx = idx;
+            break;
          }
       }
-
-      if (unionParamIndices.Count is 0) return;
-
-      for (int i = 0; i < original.TypeParameters.Length; ++i) {
-         if (unionParamIndices.ContainsKey(i)) continue;
-
-         var tp = original.TypeParameters[i];
-         var fromUnion = tp.GetAttributes().FirstOrDefault(static a => Helpers.IsUnionUtil(a)
-            && a.AttributeClass!.Name is nameof(CanHoldAttribute));
-         if (fromUnion is null) continue;
-
-         var ctorArgs = fromUnion.ConstructorArguments;
-         if (ctorArgs.Length > 0 && ctorArgs[0].Value is string sourceName) {
-            for (int j = 0; j < original.TypeParameters.Length; j++) {
-               if (original.TypeParameters[j].Name == sourceName && unionParamIndices.ContainsKey(j)) {
-                  fromUnionBindings[i] = j;
-                  break;
-               }
-            }
-         } else if (unionParamIndices.Count is 1) {
-            fromUnionBindings[i] = unionParamIndices.Keys.First();
-         }
-      }
-
-      if (fromUnionBindings.Count is 0) return;
-
-      foreach (var (vi, ui) in fromUnionBindings) {
-         var resolvedUnion = method.TypeArguments[ui];
-         var resolvedValue = method.TypeArguments[vi];
-
-         if (resolvedUnion is ITypeParameterSymbol || resolvedValue is ITypeParameterSymbol) continue;
-
+      var uniqueArgs = new SpanList<(int unionIdx, ITypeSymbol type)>(canHoldParams.Count);
+      foreach (var (canHoldIdx, unionIdx, _, unique) in canHoldParams) {
+         if (unionIdx is unresolved) continue;
+         var resolvedUnion = typeArgs[unionIdx];
+         var resolvedArg = typeArgs[canHoldIdx];
+         if (resolvedUnion is ITypeParameterSymbol || resolvedArg is ITypeParameterSymbol) continue;
          var (memberTypes, ok) = resolvedUnion.ResolveUnionTypeArgs();
          if (!ok || memberTypes.Length == 0) continue;
          if (memberTypes.Any(static m => m is ITypeParameterSymbol)) continue;
 
          bool found = false;
          foreach (var member in memberTypes) {
-            if (SymbolEqualityComparer.Default.Equals(resolvedValue, member)) {
+            if (SymbolEqualityComparer.Default.Equals(resolvedArg, member)) {
                found = true;
                break;
             }
          }
-         if (found) continue;
 
          Location loc = invocation.GetLocation();
-         for (int pi = 0; pi < original.Parameters.Length; ++pi) {
-            if (original.Parameters[pi].Type is ITypeParameterSymbol tps
-               && tps.Ordinal == vi
-               && pi < invocation.ArgumentList.Arguments.Count) {
-               loc = invocation.ArgumentList.Arguments[pi].Expression.GetLocation();
+         int methodTypeParamIdx = original.ContainingType.IsExtension
+            ? canHoldIdx - original.ContainingType.TypeParameters.Length
+            : canHoldIdx;
+         int argOffset = method.IsExtensionMethod && method.ReducedFrom is null ? 1 : 0;
+
+         static bool usesTypeParam(ITypeSymbol paramType, int typeParamIdx, IMethodSymbol method) {
+            if (paramType is ITypeParameterSymbol tps
+               && tps.DeclaringMethod is not null
+               && SymbolEqualityComparer.Default.Equals(tps.DeclaringMethod, method)
+               && tps.Ordinal == typeParamIdx) {
+               return true;
+            }
+            if (paramType is INamedTypeSymbol named) {
+               foreach (var typeArg in named.TypeArguments) {
+                  if (usesTypeParam(typeArg, typeParamIdx, method)) return true;
+               }
+            }
+            return false;
+         }
+
+         for (int pi = 0; pi < original.Parameters.Length; pi++) {
+            var paramType = original.Parameters[pi].Type;
+            if (usesTypeParam(paramType, methodTypeParamIdx, original)) {
+               int argIdx = pi - argOffset;
+               if (argIdx >= 0 && argIdx < invocation.ArgumentList.Arguments.Count) {
+                  loc = invocation.ArgumentList.Arguments[argIdx].Expression.GetLocation();
+               }
                break;
             }
          }
-         ctx.ReportDiagnostic(Diagnostic.Create(CanNeverHoldType, loc, resolvedValue));
+
+         if (!found) {
+            ctx.ReportDiagnostic(Diagnostic.Create(CanNeverHoldType, loc, resolvedArg));
+            return;
+         }
+
+         if (unique) {
+            foreach (var (otherUnionId, type) in uniqueArgs) {
+               if (otherUnionId != unionIdx) continue;
+               if (SymbolEqualityComparer.Default.Equals(type, resolvedArg)) {
+                  ctx.ReportDiagnostic(Diagnostic.Create(TypeMustBeUnique, loc, resolvedArg));
+                  continue;
+               }
+            }
+            uniqueArgs.Add(new(unionIdx, resolvedArg));
+         }
+      }
+   }
+   static readonly DiagnosticDescriptor CanHoldNoUnionSource = new(
+      "UU0006",
+      "CanHold has no union source",
+      $"'{{0}}' is marked with {nameof(CanHoldAttribute)} but no unique {nameof(IUnionType)}-constrained type parameter exists",
+      "Usage",
+      DiagnosticSeverity.Warning,
+      true
+   );
+
+   static readonly DiagnosticDescriptor CanHoldBadSource = new(
+      "UU0007",
+      "CanHold references invalid type parameter",
+      $"'{{0}}' references type parameter '{{1}}' which does not exist or is not constrained to {nameof(IUnionType)}",
+      "Usage",
+      DiagnosticSeverity.Warning,
+      true
+   );
+
+   static void CanHoldValidation(SyntaxNodeAnalysisContext ctx) {
+      var node = (MethodDeclarationSyntax)ctx.Node;
+      var sm = ctx.SemanticModel;
+
+      if (sm.GetDeclaredSymbol(node, ctx.CancellationToken) is not IMethodSymbol method) return;
+      if (!method.IsGenericMethod) return;
+      var typeParams = method.TypeParameters;
+      if (method.ContainingType.IsExtension) {
+         typeParams = [.. method.ContainingType.TypeParameters, .. typeParams];
+      }
+      var unionIndices = new SpanList<int>(stackalloc int[method.TypeParameters.Length]);
+
+      for (int i = 0; i < typeParams.Length; i++) {
+         var tp = typeParams[i];
+         foreach (var c in tp.ConstraintTypes) {
+            if (c is INamedTypeSymbol named
+               && Helpers.IsUnionUtil(named)
+               && named.Name is nameof(IUnionType)
+               && named.Arity == 0) {
+               unionIndices.Add(i);
+               break;
+            }
+         }
+      }
+      for (int i = 0; i < typeParams.Length; i++) {
+         var tp = typeParams[i];
+         var canHold = tp.GetAttributes()
+            .FirstOrDefault(a => Helpers.IsUnionUtil(a) && a.AttributeClass!.Name is nameof(CanHoldAttribute));
+
+         if (canHold is null) continue;
+
+         var loc = canHold.ApplicationSyntaxReference?
+            .GetSyntax(ctx.CancellationToken)
+            .GetLocation() ?? tp.Locations.FirstOrDefault() ?? node.GetLocation();
+
+         if (canHold.ConstructorArguments.Length > 0
+            && canHold.ConstructorArguments[0].Value is string sourceName) {
+            bool found = false;
+            for (int j = 0; j < unionIndices.Count; j++) {
+               if (typeParams[unionIndices[j]].Name == sourceName) {
+                  found = true;
+                  break;
+               }
+            }
+            if (!found) {
+               ctx.ReportDiagnostic(Diagnostic.Create(CanHoldBadSource, loc, tp.Name, sourceName));
+            }
+         } else {
+            if (unionIndices.Count is not 1) {
+               ctx.ReportDiagnostic(Diagnostic.Create(CanHoldNoUnionSource, loc, tp.Name));
+            }
+         }
       }
    }
 }

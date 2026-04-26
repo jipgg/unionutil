@@ -1,6 +1,6 @@
-[UnionImpl(UnionImplOptions.ImplementCommonInterface, FieldVisibility = Visibility.Internal)]
+[UnionImpl(UnionImplOptions.ImplementUnionInterfaces, FieldVisibility = Visibility.Internal)]
 public partial struct BasicUnion<T, U, V, W>;
-[UnionImpl(UnionImplOptions.ImplementCommonInterface, FieldVisibility = Visibility.Internal)]
+[UnionImpl(UnionImplOptions.ImplementUnionInterfaces, FieldVisibility = Visibility.Internal)]
 public readonly partial struct ReadOnlyBasicUnion<T, U, V, W>;
 [MemoryDiagnoser, DisassemblyDiagnoser]
 [SimpleJob(RuntimeMoniker.Net10_0)]
@@ -57,17 +57,17 @@ public class GetValue<T> {
       else return v;
    }
    [Benchmark]
-   public T? TryGetValue_Adapter_Preboxed() {
+   public T? TryGetValue_UnionType_Preboxed() {
       if (!_preboxed.TryGetValue(out T v)) return default;
       else return v;
    }
    [Benchmark]
-   public T? Value_Adapter_Preboxed() {
+   public T? Value_UnionType_Preboxed() {
       if (_preboxed.Value is not T v) return default;
       else return v;
    }
    [Benchmark]
-   public T? TryGetValue_Adapter() {
+   public T? TryGetValue_UnionType() {
       static T? Generic<U>(ref U u) where U : IUnionType {
          if (!u.TryGetValue(out T v)) return default;
          else return v;
@@ -75,7 +75,7 @@ public class GetValue<T> {
       return Generic(ref _union);
    }
    [Benchmark]
-   public T? Value_Adapter() {
+   public T? Value_UnionType() {
       static T? Generic<U>(ref U u) where U : IUnionType {
          if (u.Value is not T v) return default;
          else return v;

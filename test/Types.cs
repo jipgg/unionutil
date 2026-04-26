@@ -27,13 +27,13 @@ public partial struct Result<T> : ICanHoldTypes<T, Exception> {
 }
 
 [Tagged<Result>, UnionImpl(
-   BoxManagedStructs | BoxOpenGenerics | WithHoldsTypeMethod,
+   BoxManagedStructs | BoxOpenGenerics | ImplementHoldsTypeMethod,
    FieldVisibility = Visibility.Internal
 )]
 public partial struct BoxedResult<T, E> : ICanHoldTypes<T, E> where E : Exception;
 
 [Tagged<Result>, UnionImpl(
-      BoxManagedStructs | BoxOpenGenerics | WithHoldsTypeMethod,
+      BoxManagedStructs | BoxOpenGenerics | ImplementHoldsTypeMethod,
       FieldVisibility = Visibility.Internal
 )]
 public partial struct BoxedResult<T> : ICanHoldTypes<T, Exception> {
@@ -47,24 +47,24 @@ public partial struct BoxedResult<T> : ICanHoldTypes<T, Exception> {
    }
 }
 [UnionImpl(
-   EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementCommonInterface,
+   EnableNullable | BoxOpenGenerics | ImplementHoldsTypeMethod | ImplementUnionInterfaces,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(23)]
-public partial struct Sbo23<T1, T2, T3> : ICanHoldTypes<T1, T2, T3>;
+public partial struct Sbo23<T1, T2, T3>;
 [UnionImpl(
-   EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementCommonInterface,
+   EnableNullable | BoxOpenGenerics | ImplementHoldsTypeMethod | ImplementUnionInterfaces,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(55)]
-public partial struct Sbo55<T1, T2, T3> : ICanHoldTypes<T1, T2, T3>;
+public partial struct Sbo55<T1, T2, T3>;
 [UnionImpl(
-   EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementCommonInterface,
+   EnableNullable | BoxOpenGenerics | ImplementHoldsTypeMethod | ImplementUnionInterfaces,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(15)]
 public partial struct Sbo15<T1, T2, T3> : ICanHoldTypes<T1, T2, T3>;
-[UnionImpl(EnableNullable | BoxOpenGenerics | WithHoldsTypeMethod | ImplementCommonInterface,
+[UnionImpl(EnableNullable | BoxOpenGenerics | ImplementHoldsTypeMethod | ImplementUnionInterfaces,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized<SBO7>]
-public partial struct Sbo7<T1, T2, T3> : ICanHoldTypes<T1, T2, T3>;
+public partial struct Sbo7<T1, T2, T3>;
 [InlineArray(7)]
 public struct SBO7 : ISmallBuffer {
    byte _element0;

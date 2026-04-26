@@ -7,6 +7,10 @@ namespace UnionUtil;
 using static MethodImplOptions;
 
 public static class OpenGenericHelpers {
+   [MethodImpl(AggressiveInlining)]
+   public static int GetSmallBufferSize<TSmallBuffer>() where TSmallBuffer : ISmallBuffer {
+      return TSmallBuffer.Size;
+   }
    sealed class Boxed<T>(T item) {
       public T Item = item;
    }

@@ -2,11 +2,41 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using UnionUtil;
+using UnionUtil.Extensions;
 namespace Test;
 
 using static Result;
 using static MutableTag;
 using static UnionImplOptions;
+
+static class MatchExtensions {
+   public static R Match2<TUnion, [CanHold(unique: true)] T1, [CanHold(unique: true)] T2, R>(this TUnion u, Func<T1, R> f1, Func<T2, R> f2, Func<R>? @default = null) where TUnion : IUnionType {
+      if (u.TryGetValue(out T1 v1)) return f1(v1);
+      if (u.TryGetValue(out T2 v2)) return f2(v2);
+      if (@default is not null) return @default();
+      throw new InvalidOperationException();
+   }
+   extension<TUnion>(TUnion u) where TUnion : IUnionType {
+      public R Match<[CanHold] T1, R>(Func<T1, R> f1, Func<R>? @default = null) {
+         if (u.TryGetValue(out T1 v1)) return f1(v1);
+         if (@default is not null) return @default();
+         throw new InvalidOperationException();
+      }
+      public R Match<[CanHold(unique: true)] T1, [CanHold(unique: true)] T2, R>(Func<T1, R> f1, Func<T2, R> f2, Func<R>? @default = null) {
+         if (u.TryGetValue(out T1 v1)) return f1(v1);
+         if (u.TryGetValue(out T2 v2)) return f2(v2);
+         if (@default is not null) return @default();
+         throw new InvalidOperationException();
+      }
+      public R Match<[CanHold(unique: true)] T1, [CanHold(unique: true)] T2, [CanHold(unique: true)] T3, R>(Func<T1, R> f1, Func<T2, R> f2, Func<T3, R> f3, Func<R>? @default = null) {
+         if (u.TryGetValue(out T1 v1)) return f1(v1);
+         if (u.TryGetValue(out T2 v2)) return f2(v2);
+         if (u.TryGetValue(out T3 v3)) return f3(v3);
+         if (@default is not null) return @default();
+         throw new InvalidOperationException();
+      }
+   }
+}
 
 public enum MutableTag { Int = 9, Double = 1, Vector3 = -3 }
 
@@ -15,10 +45,10 @@ public enum MutableTag { Int = 9, Double = 1, Vector3 = -3 }
 [CanHoldTypes<int, double, Vector3>]
 partial struct MutableStruct;
 
-[UnionImpl(WithHoldsTypeMethod)]
+[UnionImpl(ImplementHoldsTypeMethod | ImplementUnionInterfaces)]
 partial struct ClassUnion<T, U, V> where T : class where U : class where V : class;
 
-[UnionImpl(BoxOpenGenerics | ImplementCommonInterface,
+[UnionImpl(BoxOpenGenerics | ImplementUnionInterfaces,
       FieldVisibility = Visibility.Internal), SmallBufferOptimized]
 partial struct Union<T, U, V>;
 
@@ -29,14 +59,7 @@ public enum Case { A, B, C, D, E, F, G }
 [Tagged<Case>("Case"), UnionImpl(
    FieldVisibility = Visibility.Internal
 )]
-public partial class BasicUnion<TA, TB, TC, TD, TE, TF, TG> : ICanHoldTypes<TA, TB, TC, TD, TE, TF, TG>;
-
-public static class ABc<T> where T: class {
-   static ClassUnion<T, Exception, List<int>> A = new Exception();
-   static void x() {
-      A.HoldsType<int>();
-   }
-}
+public partial class BasicUnion<TA, TB, TC, TD, TE, TF, TG>;
 
 public class MutableStructTests {
    [Fact]
@@ -87,7 +110,7 @@ public class MutableStructTests {
       };
       Assert.Equal("abc", x);
    }
-   static void TestCommonInterface<TUnion, [CanHold(nameof(TUnion))] T, [CanHold(nameof(TUnion))] U>(ref TUnion u, T v, U v2) where TUnion : IUnionType where T : IEquatable<T> {
+   static void TestCommonInterface<TUnion, [CanHold] T, [CanHold] U>(ref TUnion u, T v, U v2) where TUnion : IUnionType where T : IEquatable<T> {
       Assert.True(u.TryGetValue(out T x));
       Assert.True(u.HoldsType<T>());
       Assert.Equal(v, x);
@@ -144,7 +167,23 @@ public class MutableStructTests {
    [Fact]
    public void TestSetValue() {
       Union<int, Int128, double[]> u = 1;
-      TestUnion.Reassign(ref u, 1, 10.0);
+      var str = u.Switch(
+         static (int i) => $"{i}",
+         static (Int128 i) => $"{i}",
+         static () => "abc"
+      );
+      var str2 = u.Switch(
+         static (Int128 i) => $"{i}",
+         static (int i) => $"{i}",
+         static (double[] d) => $"{d}",
+         static () => "abc"
+      );
+      var c = u.Switch(
+         static (int x) => x,
+         static (double[] d) => d.Sum(),
+         static (Int128 x) => ((int)x)
+      );
+      TestUnion.Reassign(ref u, 1, 123);
       Int128 x = new(123, 123);
       u.SetValue(x);
       Assert.True(u.TryGetValue(out Int128 u1));
