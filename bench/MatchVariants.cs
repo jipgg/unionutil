@@ -1,3 +1,4 @@
+#pragma warning disable CS8618
 using UnionUtil.Extensions;
 using static DunetVariant<int, double, float, uint, nuint, System.Exception, System.Int128, bool>;
 

@@ -42,6 +42,12 @@ ref struct SpanList<T> : IDisposable {
       }
    }
    public void Add(T v) => _buf[_count++] = v;
+   public readonly bool Any(Func<T, bool> pred) {
+      foreach (var e in Span) {
+         if (pred(e)) return true;
+      }
+      return false;
+   }
    public readonly Span<T>.Enumerator GetEnumerator() => _buf.Slice(0, _count).GetEnumerator();
 }
 

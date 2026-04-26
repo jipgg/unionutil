@@ -14,14 +14,12 @@ public class IncrementalBenchmark {
 
    [Benchmark(Baseline = true)]
    public GeneratorDriverRunResult NoChange() {
-      // Same compilation, nothing changed — should be near-zero work
       var driver = _primed.RunGenerators(_compilation);
       return driver.GetRunResult();
    }
 
    [Benchmark]
    public GeneratorDriverRunResult UnrelatedEdit() {
-      // Add a file that has nothing to do with unions
       var updated = _compilation.AddSyntaxTrees(
          CSharpSyntaxTree.ParseText("class Foo { int x = 1; }"));
       var driver = _primed.RunGenerators(updated);
@@ -30,7 +28,6 @@ public class IncrementalBenchmark {
 
    [Benchmark]
    public GeneratorDriverRunResult RelevantEdit() {
-      // Modify a union declaration — generator must re-run
       var newTree = CSharpSyntaxTree.ParseText(Sources.Many);
       var updated = _compilation.AddSyntaxTrees(newTree);
       var driver = _primed.RunGenerators(updated);
