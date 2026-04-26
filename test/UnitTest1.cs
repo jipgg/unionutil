@@ -2,7 +2,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using UnionUtil;
-using UnionUtil.Extensions;
 namespace Test;
 
 using static Result;

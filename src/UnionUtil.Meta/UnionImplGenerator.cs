@@ -360,9 +360,12 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
       if (args.SmallBufferOptimized.Tag is Sbo.Size && TSbo is fallbackSboType) {
          var sbo = args.SmallBufferOptimized;
          sb.AppendLine($$"""
-            [{{compilerServices}}.InlineArray({{sbo.Size}})]
             {{visibility}} struct {{fallbackSboType}}: {{iSmallBUffer}} {
-               byte _element0;
+         #pragma warning disable CS0169
+               byte {{string.Join(",", Enumerable
+                     .Range(0, (int)sbo.Size)
+                     .Select(i => $"_element{i}"))}};
+         #pragma warning restore CS0169
                public static int Size {
                   [{{aggressiveInlining}}]
                   get => {{sbo.Size}};

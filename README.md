@@ -1,26 +1,29 @@
 # UnionUtil
-Source generator utilities for the upcoming `union`s language feature in C#15.
+Source generator utilities trying to be congruent with the upcoming `union`s language feature in C#15.
+Strong focus on generating 'roughly' optimal union storage layouts within the bounds of what is allowed in the runtime.
+Project has been downgraded to .NET7 for maximum compatibility.
 
-> The nature of the project is quite informal at the moment with volatile changes being the norm. In the scenario where this does seem useful to more people that myself alone, i may add a stable api version and add proper diagnostics, tests and analyzers.
- 
-Perfectly usable in .NET10, but does not have support for the fancy switch expression for matching that is available in the .NET11 preview. In these scenarios id recommend using the `[Tagged<TEnum>]` attribute for generating named properties and using pattern matching in the switch expression to match over them (`{ Tag: Tag.X, X: var x }`).
-
+## Motivation
+This project initially started as an experiment playing around with the .NET11 union preview feature.
 The currently proposed default implementation of `union` types will be `readonly struct(object, int)` to my understanding, meaning it'll box value types and generics. This is arguably the best ccompromise considering the runtime limitations, but may not always be what you want.
-
 Unions will support custom, user supplied implementations, hence the reasoning for this source generator. Mainly focusing on resolving a 'roughly' optimal memory layout by default as well as some optional parameters to finetune the generated source of the union.
+
 
 ## Main feature set
 * Generated unions are congruent with the current compiler feature structural interface in the .NET11 preview
-* Concrete `unmanaged` types always share the same storage in memory
-* SBO support for avoiding boxing of small `unmanaged` types in unions with open generics
+* Concrete `unmanaged` types always share the same storage in memory in non-generic unions
+* Small buffer optimization support to avoid boxing of small `unmanaged` types in unions with open generics
 * Configurability of whether certain types should be stored sequentially or boxed
 * Support for mutable union types
 * Optionally tag the union with the `Tagged<TEnum>` attribute for labelled properties.
+* `IUnionType` for a non-boxing, type order agnostic common interface in generic contexts.
+* Analyzers and attributes for working with `IUnionType` ergonomically.
+* Compatibility extension methods broadly simulating the `switch` expression semantics for older projects.
 # Current limitations
 ## `where T: unmanaged`
-While legal for the compiler, Overlapping generic fields are not allowed by the runtime, even when constrained to unmanaged. Meaning `where T: unmanaged` will follow the same rules as `where T: struct` for the time being.
+While legal for the compiler, overlapping generic fields are not allowed by the runtime, even when constrained to unmanaged. Meaning `where T: unmanaged` will follow the same rules as `where T: struct` for the time being.
 
-For unions with `BoxOpenGenerics = true` or `BoxManagedStructs = true` you can optionally specify `[SmallBufferOptimized(uint sizeInBytes)]` as an optimization to avoid boxing whenever a generic unmanaged type's size fits into the small buffer field to avoid allocation. The default size for this SBO buffer is 7 bytes. The reasoning for this seemingly arbitrary size is that this results in the memory layout of the union to simply recycle the padding otherwise created between the `object` boxing field and the `byte` type index field, keeping the struct size the same as without the SBO in these scenarios.
+For unions with `BoxOpenGenerics` or `BoxManagedStructs` you can optionally specify `[SmallBufferOptimized(uint sizeInBytes)]` or `[SmallBufferOptimized<TSmallBuffer>]` as an optimization to avoid boxing whenever a generic unmanaged type's size fits into the small buffer field to avoid allocation. The default size for this SBO buffer is 7 bytes. The reasoning for this seemingly arbitrary size is that this results in the memory layout of the union to simply recycle the padding otherwise created between the `object` boxing field and the `byte` type index field, keeping the struct size the same as without the SBO in these scenarios.
 # Installation
 ```sh
 dotnet package add UnionUtil
@@ -30,7 +33,7 @@ or add it as a project refecence in your `.csproj`:
   <ItemGroup>
     <ProjectReference Include="dir\to\unionutil\src\UnionUtil\UnionUtil.csproj" />
      <ProjectReference
-        Include="dir\to\unionutil\src\UnionUtil.Generators\UnionUtil.Generators.csproj" 
+        Include="dir\to\unionutil\src\UnionUtil.Meta\UnionUtil.Meta.csproj" 
         OutputItemType="Analyzer"
         ReferenceOutputAssembly="false"
       />
@@ -38,54 +41,65 @@ or add it as a project refecence in your `.csproj`:
 
 ```
 # Usage Examples
+Generating new unions:
 ```cs
 using UnionUtil;
-
+using static UnionUtil.UnionImplOptions;
 // basic union with statically know type cases
-[UnionUImpl, Union<int, double, DateTime>]
+[UnionUImpl, CanHoldTypes<int, double, DateTime>]
 partial struct MyUnion;
-
-// when generics are needed:
-[UnionImpl(
-    // whether the union should box unconstrainted generics or store them sequentially
-    // default is false (sequential)
-    BoxOpenGenerics = true,
-    // whether managed structs should be boxed or stored sequentially.
-    // this also applies to generics constrained to `struct` or `unmanaged`
-    BoxManagedStructs = true,
-    // mainly useful for specifying whether a class should be readonly or not.
-    // when omitted it will be inferred by the `readonly` keyword being specified on structs
-    // otherwise it'll be false
-    ReadOnly = false,
-    // will generate HasValue for a null case in the preview union feature in .NET11
-    // will also alter the Tagged variant
-    Nullable = true,
-    // mainly useful for inspecting how the type got generated or wanting to extend the behavior
-    // default is `Visibility.Internal`
-    FieldVisibility = Vilisiblity.Internal
-)]
-partial struct MyGenericUnion<T, U, V> : IUnion<T, U, V>;
-
+// for trivial generic cases
+[UnionImpl(EnableReadOnly | EnableNullable)]
+sealed partial class MyOtherUnion<T, U, V, W>;
+// for non-trivial generic cases
+[UnionUImpl(ImplementUnionInterfaces | )] // will implement `IUnionType`
+readonly partial struct Union<T, U, V> : ICanHoldTypes<T, U, List<V>, double>;
+// will box but store unmanaged values smaller than 15 bytes inside the inline buffer
+[UnionImpl(BoxOpenGenerics | WithExplicitConversionsToValue), SmallBufferOptimized(15)]
+partial struct MyGenericUnion<T, U, V, W, X, Y, Z>;
 // tagged union
 public enum Result { Ok, Err }
-// optional propertyNamy argument
-// default is "Tag"
-[Tagged<Result>("Is"), UnionImpl]
+[UnionImpl, Tagged<Result>]
 partial struct Result<T> : IUnion<T, Exception>;
-// usage example
-Result<int> result = 1;
-result.Ok += 3;
-result.Err = new Exception("my exception"); // will change the tag to Err
+```
+Using the unions:
+```cs
+Union<int, bool, double> myUnion = 123;
+// This will be the main supported compatibility switch expression syntax
+// for projects targetting older .NET standards or language versions.
+var asInt = myUnion.Switch( // does not care about generic type order
+    (int i) => 1,
+    (float f) => -1, // analyzer will emit warning that the union can never hold `float`
+    (int i) => -1, // analyzer will emit warning that this was previously declared
+    (double d) => 3,
+    (bool b) => 2,
+    () => 4 // default case
+);
+Result<int[]> result = [1, 2, 3];
+// pattern match over tags
 var str = result switch {
-    {Is: Result.Ok, Ok: var v} => v.ToString(),
-    {Is: Result.Err, Err: var e} => e.Message,
+    {Tag: Result.Ok, Ok: var ok} => $"[{string.Join(", ", ok.Select(e => e.ToString()))}]",
+    {Tag: Result.Err, Err: var err} => err.Message,
 };
-// with the .NET11 preview features
-var str = result switch {
-    int ok => ok.ToString(),
-    Exception err => err.Message,
-};
+
+// working with unions generically
+// `[CanHold(nameof(TUnion))] T` marks a type parameter to be analyzed at the point invocation
+// and emit a warning if TUnion can not realistically ever hold T. 
+static TNumber UseUnion<TUnion, [CanHold] TNumber>(in TUnion u, TNumber v)
+    where TUnion: IUnionType where TNumber : INumber<TNumber>  {
+
+    if (!TUnion.CanHoldType<double>()) throw new(); // inspect whether a certain type can be held by the union
+    var sboSize = TUnion.SmallBufferSize; // inspect the sbo size
+    var typeCount = TUnion.TypeCount; // inspect the count of types the union can hold
+    var holdsType = u.HoldsType<TNumber>(); // check if the union holds a specific type
+
+    if (u.TryGetValue(out TNumber n)) return n * v; // the main magic of IUnionType which implements a generic TryGetValue<T>(out T v)
+    else throw new();
+}
 
 ```
 # Benchmarks
-More proper benchmarks will be added once t
+Benchmark reports can be found [here](./bench/reports/).
+They wont always be up-to-date, nor always be a good representative for real-world code.
+Mainly used to visualize how well internal implementations compare to other ones, so i can
+determine which implementations are underperforming.

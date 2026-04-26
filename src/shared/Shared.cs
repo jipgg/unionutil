@@ -1,5 +1,3 @@
-#if !SHARED_SHARED_INCLUDE_GUARD
-#define SHARED_SHARED_INCLUDE_GUARD
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 using System;
@@ -169,6 +167,9 @@ public interface IUnionType {
 #if NET7_0_OR_GREATER
    virtual static bool BoxesOpenGenerics { get; } = false;
    virtual static bool BoxesManagedStructs { get; } = false;
+   /// <summary>
+   /// Gets the small buffer size. 0 if SBO is not enabled.
+   /// </summary>
    virtual static int SmallBufferSize { get; } = 0;
    /// <summary>
    /// Returns <see langword="true"/> if <typeparamref name="T"/> is among the types this union
@@ -223,4 +224,3 @@ public interface IUnionType {
    /// </summary>
    bool TryClearValue();
 }
-#endif

@@ -1,5 +1,3 @@
-#if !SHARED_META_INCLUDE_GUARD
-#define SHARED_META_INCLUDE_GUARD
 namespace UnionUtil.Meta;
 
 public static class Config {
@@ -12,4 +10,3 @@ public static class Config {
       public const string Namespace = nameof(UnionUtil);
    }
 }
-#endif

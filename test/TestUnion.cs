@@ -1,15 +1,5 @@
 using UnionUtil;
-using UnionUtil.Extensions;
 namespace Test;
-
-// public static class SomethingA {
-//    static void Legal<TUnion, [CanHold(nameof(TUnion))] T, TOtherUnion>(ref TUnion u, T v) where TUnion : IUnionType where TOtherUnion : IUnionType {
-//    }
-//    static void Illegal<[CanHold] T>(T v) {
-//    }
-//    static void AlsoIllegal<TUnion, [CanHold(nameof(TUnion))] T>(ref TUnion u, T v) where TUnion : IUnionType {
-//    }
-// }
 
 public static class TestUnion {
    public static void Reassign<TUnion, [CanHold] T, [CanHold] X>(ref TUnion u, T v, X y) where TUnion : IUnionType, IHasTypeCount3 {
