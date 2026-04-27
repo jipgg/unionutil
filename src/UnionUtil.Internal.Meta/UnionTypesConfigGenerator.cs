@@ -46,6 +46,11 @@ public sealed class UnionTypesConfigGenerator : IIncrementalGenerator {
             typeParams.Append($"{ty(i)},");
          }
          typeParams[typeParams.Length - 1] = '>';
+         sb.AppendLine($$"""
+         public readonly struct FromIndex{{n}} {
+            public static readonly FromIndex{{n}} Value = default;
+         }
+         """);
          sb.AppendLine($"public interface {UnionType.HasTypeCountName}{n};");
          sb.AppendLine($"public interface {UnionType.InterfaceName}{typeParams};");
          const string system = "global::System";

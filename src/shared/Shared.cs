@@ -141,6 +141,8 @@ public enum UnionImplOptions : uint {
    /// in a type order agnostic manner. Mainly useful in generics <code>where TUnion : <see cref="IUnionType"/></code>.
    /// </summary>
    ImplementUnionInterfaces = 1 << 7,
+
+   ImplementFromIndexConstructors = 1 << 8,
 };
 public static class UnionImplOptionsExtenions {
    extension(UnionImplOptions opts) {

@@ -1,4 +1,5 @@
 #pragma warning disable CS8618
+using static UnionUtil.ThrowHelpers;
 using static DunetVariant<int, double, float, uint, nuint, System.Exception, System.Int128, bool>;
 
 [Dunet.Union]
@@ -97,7 +98,8 @@ public class MatchVariants {
       if (_unionUtilSeq.TryGetValue(out Exception _)) return TN * 6;
       if (_unionUtilSeq.TryGetValue(out Int128 _)) return TN * 7;
       if (_unionUtilSeq.TryGetValue(out bool _)) return TN * 8;
-      throw new InvalidOperationException();
+      ThrowInvalidOperationException();
+      return default!;
    }
 
    [Benchmark]
@@ -136,7 +138,8 @@ public class MatchVariants {
       if (_unionUtilBox.TryGetValue(out Exception _)) return TN * 6;
       if (_unionUtilBox.TryGetValue(out Int128 _)) return TN * 7;
       if (_unionUtilBox.TryGetValue(out bool _)) return TN * 8;
-      throw new InvalidOperationException();
+      ThrowInvalidOperationException();
+      return default!;
    }
    [Benchmark]
    public int OneOf_Match() {
@@ -201,7 +204,7 @@ public class MatchVariants {
          X6(var _) => TN * 6,
          X7(var _) => TN * 7,
          X8(var _) => TN * 8,
-         _ => throw new InvalidOperationException(),
+         _ => ThrowInvalidOperationException<int>(),
       };
    }
 }

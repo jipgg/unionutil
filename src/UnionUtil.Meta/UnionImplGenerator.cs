@@ -44,10 +44,6 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
    public void Initialize(IncrementalGeneratorInitializationContext ctx) {
       var provider = ctx.SyntaxProvider.ForAttributeWithMetadataName(
             $"{nameof(UnionUtil)}.{nameof(UnionImplAttribute)}",
-            // static (node, token) => node switch {
-            //    ClassDeclarationSyntax { AttributeLists.Count: > 0 } => true,
-            //    StructDeclarationSyntax { AttributeLists.Count: > 0 } => true,
-            //    _ => false,
             Predicate, Resolve).Where(static e => e?.Ok is true);
       ctx.RegisterSourceOutput(provider, static (ctx, result) => {
          Debug.Assert(result!.Ok is true);
@@ -85,10 +81,11 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          sbo = new SmallBufferOptimized(Sbo.Size, sboSize, default!);
       }
    sbo_done:
-      if (opts.Has(UnionImplOptions.EnableReadOnly)) goto skip_readonly;
-      if (ctx.TargetNode is not StructDeclarationSyntax sds) goto skip_readonly; if (!sds.Modifiers.Any(SyntaxKind.ReadOnlyKeyword)) goto skip_readonly;
+      if (opts.Has(UnionImplOptions.EnableReadOnly)) goto skip_infer_readonly;
+      if (ctx.TargetNode is not StructDeclarationSyntax sds) goto skip_infer_readonly;
+      if (!sds.Modifiers.Any(SyntaxKind.ReadOnlyKeyword)) goto skip_infer_readonly;
       opts |= UnionImplOptions.EnableReadOnly;
-   skip_readonly:
+   skip_infer_readonly:
       var (typeArgs, ok) = symbol.ResolveUnionTypeArgs();
       if (!ok || typeArgs.Length is 0) return default;
       var storageEntries = new StorageEntry[typeArgs.Length];
@@ -188,8 +185,10 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
    const string codeAnalysis = "global::System.Diagnostics.CodeAnalysis";
    const string unscopedRef = $"{codeAnalysis}.UnscopedRef";
    const string interopServices = "global::System.Runtime.InteropServices";
-   const string invalidOperationException = "global::System.InvalidOperationException";
+   // const string invalidOperationException = "global::System.InvalidOperationException";
    const string unionUtil = "global::UnionUtil";
+   const string throwHelpers = $"{unionUtil}.ThrowHelpers";
+   const string throwInvalidOperationException = $"{throwHelpers}.ThrowInvalidOperationException";
    const string iSmallBUffer = $"{unionUtil}.ISmallBuffer";
    const string genericHelpers = $"global::UnionUtil.OpenGenericHelpers";
    static string GenericHelpersBox(string type, string arg) => $"{genericHelpers}.Box<{type}>({arg})";
@@ -243,6 +242,15 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
                {{indexField}} = {{arg.TypeIndex}};
             }
          """);
+         if (!opts.Has(ImplementFromIndexConstructors)) goto skip_implement_from_index_constructors;
+         sb.AppendLine($$"""
+            [{{aggressiveInlining}}]
+            public {{args.TypeName}}({{unionUtil}}.FromIndex{{arg.TypeIndex}} _, {{arg.TypeName}} v) {
+               {{assign}};
+               {{indexField}} = {{arg.TypeIndex}};
+            }
+         """);
+         skip_implement_from_index_constructors:
          if (opts.Has(NoImplicitConversions)) return;
          if (arg.Kind is not Kind.Interface) sb.AppendLine($$"""
             [{{aggressiveInlining}}]
@@ -266,7 +274,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          if (arg.Kind is Kind.Interface) return;
          sb.AppendLine($$"""
             public static explicit operator {{arg.TypeName}}({{args.T}} u) {
-               return u.TryGetValue(out {{arg.TypeName}} v) ? v : throw new();
+               return u.TryGetValue(out {{arg.TypeName}} v) ? v : {{throwInvalidOperationException}}<{{arg.TypeName}}>();
             }
          """);
       }
@@ -295,7 +303,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
             public{{(isReadOnly ? ro : " ")}} {{e.TypeName}} {{tagged[e.TypeIndex]}} {
                [{{aggressiveInlining}}]
               {{(isReadOnly ? " " : ro)}} get {
-                  if ({{indexField}} != {{e.TypeIndex}}) throw new {{invalidOperationException}}($"type index is {{{indexField}}} ({{tagged[e.TypeIndex]}}).");
+                  if ({{indexField}} != {{e.TypeIndex}}) {{throwInvalidOperationException}}($"type index is {{{indexField}}} ({{tagged[e.TypeIndex]}})");
                   return {{refExpr}};
                }
                {{setter}}
@@ -325,7 +333,6 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
       }
       bool sboEnabled = args.SmallBufferOptimized.Tag is not Sbo.Disabled && toBox.Any(static e => e.Kind is Kind.Open or Kind.Value && e.Strategy is Strategy.Box);
       if (toBox.Count is not 0) writeField("object?", objectField, "default");
-      writeField("byte", indexField);
       string? TSbo = default;
       if (sboEnabled) {
          var size = args.SmallBufferOptimized.Size;
@@ -336,6 +343,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          };
          writeField(TSbo, sboField, "default");
       }
+      writeField("byte", indexField);
       if (toOverlap.Count is 0) goto skip_to_overlap;
       sb.AppendLine($$"""
             [{{interopServices}}.StructLayout({{interopServices}}.LayoutKind.Explicit)]
@@ -424,7 +432,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
       sb.AppendLine($"  public{ro} {obj} Value => {indexField} switch {{");
       foreach (var e in getValueExprs) sb.AppendLine($"    {e.Item1} => {e.Item2}!,");
       if (isNullable) sb.AppendLine($"    _ => null,");
-      else sb.AppendLine($"    _ => throw new global::System.InvalidOperationException($\"type index was {{{indexField}}}\")");
+      else sb.AppendLine($"    _ => {throwInvalidOperationException}<{obj}>($\"type index was {{{indexField}}}\")");
       sb.AppendLine("  };");
       if (isNullable) {
          sb.AppendLine($"  public{ro} bool HasValue => {indexField} != 0;");
@@ -491,7 +499,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
                0 => null,
       """);
       sb.AppendLine($$"""
-               _ => throw new {{invalidOperationException}}("invalid tag " + {{indexField}}.ToString()),
+               _ => {{throwInvalidOperationException}}<{{@enum}}>($"invalid tag " + {{indexField}}.ToString()),
             };
          }
       """);
