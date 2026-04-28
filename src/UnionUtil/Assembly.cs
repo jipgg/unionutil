@@ -3,5 +3,7 @@ using UnionUtil;
 
 [assembly: GenerateUnionTypesFromConfig]
 
+
 [AttributeUsage(AttributeTargets.Assembly)]
 sealed class GenerateUnionTypesFromConfigAttribute : Attribute;
+

@@ -52,11 +52,11 @@ public sealed class UnionTypesConfigGenerator : IIncrementalGenerator {
          }
          """);
          sb.AppendLine($"public interface {UnionType.HasTypeCountName}{n};");
-         sb.AppendLine($"public interface {UnionType.InterfaceName}{typeParams};");
-         const string system = "global::System";
-         const string attributeUsage = $"[{system}.AttributeUsage({system}.AttributeTargets.Struct | {system}.AttributeTargets.Class, AllowMultiple = false)]";
-         sb.AppendLine(attributeUsage);
-         sb.AppendLine($"public sealed class {UnionType.AttributeName}{typeParams} : {system}.Attribute;");
+         // sb.AppendLine($"public interface {UnionType.InterfaceName}{typeParams};");
+         // const string system = "global::System";
+         // const string attributeUsage = $"[{system}.AttributeUsage({system}.AttributeTargets.Struct | {system}.AttributeTargets.Class, AllowMultiple = false)]";
+         // sb.AppendLine(attributeUsage);
+         // sb.AppendLine($"public sealed class {UnionType.AttributeName}{typeParams} : {system}.Attribute;");
          typeParams.Clear();
          continue;
       }

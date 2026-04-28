@@ -5,6 +5,9 @@ namespace UnionUtil;
 
 using static MethodImplOptions;
 
+[ArityRange(2, 16)]
+public sealed class CoolThing<T>;
+
 public static class ThrowHelpers {
    [DoesNotReturn, MethodImpl(NoInlining)]
    public static void ThrowUnreachable() => throw new UnreachableException();

@@ -3,6 +3,7 @@ namespace UnionUtil;
 using static MethodImplOptions;
 using static ThrowHelpers;
 
+
 public static class SwitchExpressionCompatibilityExtensions {
       [MethodImpl(AggressiveInlining)]
       public static  R Switch<TUnion, [CanHold(unique: true)] T1, R>

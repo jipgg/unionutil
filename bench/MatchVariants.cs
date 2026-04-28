@@ -98,7 +98,7 @@ public class MatchVariants {
       if (_unionUtilSeq.TryGetValue(out Exception _)) return TN * 6;
       if (_unionUtilSeq.TryGetValue(out Int128 _)) return TN * 7;
       if (_unionUtilSeq.TryGetValue(out bool _)) return TN * 8;
-      ThrowInvalidOperationException();
+      ThrowInvalidOperation();
       return default!;
    }
 
@@ -138,7 +138,7 @@ public class MatchVariants {
       if (_unionUtilBox.TryGetValue(out Exception _)) return TN * 6;
       if (_unionUtilBox.TryGetValue(out Int128 _)) return TN * 7;
       if (_unionUtilBox.TryGetValue(out bool _)) return TN * 8;
-      ThrowInvalidOperationException();
+      ThrowInvalidOperation();
       return default!;
    }
    [Benchmark]
@@ -204,7 +204,7 @@ public class MatchVariants {
          X6(var _) => TN * 6,
          X7(var _) => TN * 7,
          X8(var _) => TN * 8,
-         _ => ThrowInvalidOperationException<int>(),
+         _ => ThrowInvalidOperation<int>(),
       };
    }
 }
