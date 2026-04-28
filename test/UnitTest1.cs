@@ -50,6 +50,9 @@ partial struct ClassUnion<T, U, V> where T : class where U : class where V : cla
 [UnionImpl(BoxOpenGenerics | ImplementUnionInterfaces,
       FieldVisibility = Visibility.Internal), SmallBufferOptimized]
 partial struct Union<T, U, V>;
+[UnionImpl(BoxOpenGenerics | ImplementUnionInterfaces,
+      FieldVisibility = Visibility.Internal), SmallBufferOptimized]
+readonly partial struct ReadOnlyUnion<T, U, V>;
 
 [UnionImpl]
 partial struct MutableStruct2<T> where T : struct;

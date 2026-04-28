@@ -185,19 +185,18 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
    const string codeAnalysis = "global::System.Diagnostics.CodeAnalysis";
    const string unscopedRef = $"{codeAnalysis}.UnscopedRef";
    const string interopServices = "global::System.Runtime.InteropServices";
-   // const string invalidOperationException = "global::System.InvalidOperationException";
    const string unionUtil = "global::UnionUtil";
    const string throwHelpers = $"{unionUtil}.ThrowHelpers";
-   const string throwInvalidOperationException = $"{throwHelpers}.ThrowInvalidOperationException";
+   const string throwInvalidOperation = $"{throwHelpers}.ThrowInvalidOperation";
    const string iSmallBUffer = $"{unionUtil}.ISmallBuffer";
-   const string genericHelpers = $"global::UnionUtil.OpenGenericHelpers";
-   static string GenericHelpersBox(string type, string arg) => $"{genericHelpers}.Box<{type}>({arg})";
-   static string GenericHelpersSboBox(string type, string sboType, string sbo, string obj, string arg)
-      => $"{genericHelpers}.Box<{type},{sboType}>(ref {@unsafe}.AsRef(in {sbo}), ref {obj}, {arg})";
-   static string GenericHelpersRef(string type, string arg) => $"{genericHelpers}.Ref<{type}>(ref {arg})";
-   static string GenericHelpersSboRef(string type, string sboType, string sbo, string obj) => $"{genericHelpers}.Ref<{type},{sboType}>(ref {sbo}, ref {obj})";
-   static string GenericHelpersGet(string type, string arg) => $"{genericHelpers}.Get<{type}>({arg})";
-   static string GenericHelpersSboGet(string type, string sboType, string sbo, string obj) => $"{genericHelpers}.Get<{type},{sboType}>(ref {@unsafe}.AsRef(in {sbo}), {obj})";
+   const string boxed = $"{unionUtil}.Boxed";
+   const string boxHelpers = $"{unionUtil}.BoxHelpers";
+   static string BoxHelpersWrite(string T, string v) => $"{boxHelpers}.Write<{T}>(ref {objectField}, {v})";
+   static string BoxHelpersWrite(string T, string TSmallBuffer, string v) => $"{boxHelpers}.Write<{T}, {TSmallBuffer}>(ref {@unsafe}.AsRef(in {sboField}), ref {objectField}, {v})";
+   static string BoxHelpersUpdate(string T, string v) => $"{boxHelpers}.Update<{T}>(ref {objectField}, {v})";
+   static string BoxHelpersUpdate(string T, string TSmallBuffer, string v) => $"{boxHelpers}.Update<{T}, {TSmallBuffer}>(ref {@unsafe}.AsRef(in {sboField}), ref {objectField}, {v})";
+   static string BoxHelpersRead(string T) => $"{boxHelpers}.Read<{T}>({objectField})";
+   static string BoxHelpersRead(string T, string TSmallBuffer) => $"{boxHelpers}.Read<{T}, {TSmallBuffer}>(ref {@unsafe}.AsRef(in {sboField}), {objectField})";
    static string FieldName(in StorageEntry s) {
       return $"_{s.TypeIndex}";
    }
@@ -274,21 +273,21 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          if (arg.Kind is Kind.Interface) return;
          sb.AppendLine($$"""
             public static explicit operator {{arg.TypeName}}({{args.T}} u) {
-               return u.TryGetValue(out {{arg.TypeName}} v) ? v : {{throwInvalidOperationException}}<{{arg.TypeName}}>();
+               return u.TryGetValue(out {{arg.TypeName}} v) ? v : {{throwInvalidOperation}}<{{arg.TypeName}}>();
             }
          """);
       }
-      void writeSetValue(in StorageEntry arg, string refExpr, string setExpr) {
+      void writeSetValue(in StorageEntry arg, string set, string reset) {
          if (isReadOnly) return;
          sb.AppendLine($$"""
             [{{aggressiveInlining}}]
             public void SetValue({{arg.TypeName}} v) {
                if ({{indexField}} is {{arg.TypeIndex}}) {
-                  {{refExpr}} = v;
+                  {{set}};
                   return;
                }
                ClearValue();
-               {{setExpr}};
+               {{reset}};
                {{indexField}} = {{arg.TypeIndex}};
             }
          """);
@@ -303,7 +302,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
             public{{(isReadOnly ? ro : " ")}} {{e.TypeName}} {{tagged[e.TypeIndex]}} {
                [{{aggressiveInlining}}]
               {{(isReadOnly ? " " : ro)}} get {
-                  if ({{indexField}} != {{e.TypeIndex}}) {{throwInvalidOperationException}}($"type index is {{{indexField}}} ({{tagged[e.TypeIndex]}})");
+                  if ({{indexField}} != {{e.TypeIndex}}) {{throwInvalidOperation}}($"type index is {{{indexField}}} ({{tagged[e.TypeIndex]}})");
                   return {{refExpr}};
                }
                {{setter}}
@@ -360,7 +359,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          getValueExprs.Add((e.TypeIndex, field));
          writeConstructor(e, $"{overlappedField} = new() {{{FieldName(e)} = v}};");
          writeTryGetValue(e, $"v = {field};");
-         writeSetValue(e, field, $"{field} = v");
+         writeSetValue(e, $"{field} = v", $"{field} = v");
          writeProperties(e, field);
       }
    skip_to_overlap:
@@ -388,29 +387,31 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
       }
       foreach (var e in toBox) {
          var T = (string)e.TypeName;
-         string box;
+         string writeExpr;
          if (e.Kind is Kind.Open && e.Strategy is Strategy.Box) {
-            if (TSbo is null) box = $"{objectField} = {GenericHelpersBox(T, "v")}";
-            else box = $"{GenericHelpersSboBox(T, TSbo, sboField, objectField, "v")}";
-         } else box = $"{objectField} = v;";
-         writeConstructor(e, box);
+            if (TSbo is null) writeExpr = $"{BoxHelpersWrite(T, "v")}";
+            // if (TSbo is null) box = $"{objectField} = {GenericHelpersBox(T, "v")}";
+            else writeExpr = $"{BoxHelpersWrite(T, TSbo, "v")}";
+            // else box = $"{GenericHelpersSboBox(T, TSbo, sboField, objectField, "v")}";
+         } else writeExpr = $"{objectField} = v;";
+         writeConstructor(e, writeExpr);
          var getExpr = e.Kind switch {
             Kind.Reference or Kind.Interface => $"{@unsafe}.As<{T}>({objectField}!)",
             Kind.Value or Kind.Unmanaged => $"{@unsafe}.Unbox<{T}>({objectField}!)",
-            _ => TSbo is not null ? GenericHelpersSboGet(T, TSbo, sboField, objectField) : GenericHelpersGet(T, objectField),
+            _ => TSbo is not null ? BoxHelpersRead(T, TSbo) : BoxHelpersRead(T),
          };
          var refExpr = e.Kind switch {
             Kind.Interface or Kind.Reference => $"{@unsafe}.As<object?,{T}>(ref {objectField}!)",
             Kind.Value or Kind.Unmanaged => $"{@unsafe}.Unbox<{T}>({objectField}!)",
-            _ => TSbo is not null ? GenericHelpersSboRef(T, TSbo, sboField, objectField) : GenericHelpersRef(T, objectField),
+            _ => TSbo is not null ? BoxHelpersUpdate(T, TSbo, "v") : BoxHelpersUpdate(T, "v"),
          };
          writeProperties(e, getExpr);
          writeTryGetValue(e, $"v = {getExpr};");
-         writeSetValue(e, refExpr, box);
+         writeSetValue(e, refExpr, writeExpr);
          if (args.SmallBufferOptimized.Tag is Sbo.Disabled) {
             clearExprs.Add((e.TypeIndex, $"{objectField} = null"));
          }
-         getValueExprs.Add((e.TypeIndex, TSbo is not null ? GenericHelpersSboGet(e.TypeName, TSbo, sboField, objectField) : objectField));
+         getValueExprs.Add((e.TypeIndex, TSbo is not null ? BoxHelpersRead(e.TypeName, TSbo) : objectField));
       }
    skip_to_box:
       if (sequential.Count is 0) goto skip_sequential;
@@ -422,7 +423,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          writeConstructor(e, $"{holder} = v;");
          writeTryGetValue(e, $"v = {holder};");
          if (isReadOnly is false) {
-            writeSetValue(e, holder, $"{holder} = v");
+            writeSetValue(e, $"{holder} = v", $"{holder} = v");
             clearExprs.Add((e.TypeIndex, $"{holder} = default!"));
          }
          writeProperties(e, holder);
@@ -432,7 +433,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
       sb.AppendLine($"  public{ro} {obj} Value => {indexField} switch {{");
       foreach (var e in getValueExprs) sb.AppendLine($"    {e.Item1} => {e.Item2}!,");
       if (isNullable) sb.AppendLine($"    _ => null,");
-      else sb.AppendLine($"    _ => {throwInvalidOperationException}<{obj}>($\"type index was {{{indexField}}}\")");
+      else sb.AppendLine($"    _ => {throwInvalidOperation}<{obj}>($\"type index was {{{indexField}}}\")");
       sb.AppendLine("  };");
       if (isNullable) {
          sb.AppendLine($"  public{ro} bool HasValue => {indexField} != 0;");
@@ -499,7 +500,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
                0 => null,
       """);
       sb.AppendLine($$"""
-               _ => {{throwInvalidOperationException}}<{{@enum}}>($"invalid tag " + {{indexField}}.ToString()),
+               _ => {{throwInvalidOperation}}<{{@enum}}>($"invalid tag " + {{indexField}}.ToString()),
             };
          }
       """);
@@ -532,7 +533,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
             static int {@interface}.SmallBufferSize => {args.SmallBufferOptimized.Size};
       """);
       else if (args.SmallBufferOptimized.Tag is Sbo.Name) sb.AppendLine($"""
-            static int {@interface}.SmallBufferSize => {genericHelpers}.GetSmallBufferSize<{args.SmallBufferOptimized.Name}>();
+            static int {@interface}.SmallBufferSize => {boxHelpers}.GetSmallBufferSize<{args.SmallBufferOptimized.Name}>();
       """);
       sb.AppendLine($$"""
             [{{aggressiveInlining}}]

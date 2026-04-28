@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 namespace UnionUtil;
 using static MethodImplOptions;
+using static ThrowHelpers;
 
 public static class SwitchExpressionCompatibilityExtensions {
       [MethodImpl(AggressiveInlining)]
@@ -8,7 +9,7 @@ public static class SwitchExpressionCompatibilityExtensions {
          (this TUnion u, Func<T1, R> f1, Func<R>? _ = null) where TUnion: IUnionType {
          if (u.TryGetValue(out T1 v1)) return f1(v1);
          if (_ is not null) return _();
-         return ThrowHelpers.ThrowInvalidOperationException<R>();
+         return ThrowInvalidOperation<R>();
       }
    extension<TUnion>(TUnion u) where TUnion : IUnionType {
       [MethodImpl(AggressiveInlining)]
@@ -18,7 +19,7 @@ public static class SwitchExpressionCompatibilityExtensions {
          if (u.TryGetValue(out T1 v1)) return f1(v1);
          if (u.TryGetValue(out T2 v2)) return f2(v2);
          if (_ is not null) return _();
-         return ThrowHelpers.ThrowInvalidOperationException<R>();
+         return ThrowInvalidOperation<R>();
       }
       [MethodImpl(AggressiveInlining)]
       public R Switch
@@ -28,7 +29,7 @@ public static class SwitchExpressionCompatibilityExtensions {
          if (u.TryGetValue(out T2 v2)) return f2(v2);
          if (u.TryGetValue(out T3 v3)) return f3(v3);
          if (_ is not null) return _();
-         return ThrowHelpers.ThrowInvalidOperationException<R>();
+         return ThrowInvalidOperation<R>();
       }
       [MethodImpl(AggressiveInlining)]
       public R Switch
@@ -39,7 +40,7 @@ public static class SwitchExpressionCompatibilityExtensions {
          if (u.TryGetValue(out T3 v3)) return f3(v3);
          if (u.TryGetValue(out T4 v4)) return f4(v4);
          if (_ is not null) return _();
-         return ThrowHelpers.ThrowInvalidOperationException<R>();
+         return ThrowInvalidOperation<R>();
       }
       [MethodImpl(AggressiveInlining)]
       public R Switch
@@ -51,7 +52,7 @@ public static class SwitchExpressionCompatibilityExtensions {
          if (u.TryGetValue(out T4 v4)) return f4(v4);
          if (u.TryGetValue(out T5 v5)) return f5(v5);
          if (_ is not null) return _();
-         return ThrowHelpers.ThrowInvalidOperationException<R>();
+         return ThrowInvalidOperation<R>();
       }
       [MethodImpl(AggressiveInlining)]
       public R Switch
@@ -64,7 +65,7 @@ public static class SwitchExpressionCompatibilityExtensions {
          if (u.TryGetValue(out T5 v5)) return f5(v5);
          if (u.TryGetValue(out T6 v6)) return f6(v6);
          if (_ is not null) return _();
-         return ThrowHelpers.ThrowInvalidOperationException<R>();
+         return ThrowInvalidOperation<R>();
       }
       [MethodImpl(AggressiveInlining)]
       public R Switch
@@ -77,7 +78,7 @@ public static class SwitchExpressionCompatibilityExtensions {
          if (u.TryGetValue(out T5 v5)) return f5(v5);
          if (u.TryGetValue(out T6 v6)) return f6(v6);
          if (u.TryGetValue(out T7 v7)) return f7(v7);
-         return ThrowHelpers.ThrowInvalidOperationException<R>();
+         return ThrowInvalidOperation<R>();
       }
       [MethodImpl(AggressiveInlining)]
       public R Switch
@@ -92,7 +93,7 @@ public static class SwitchExpressionCompatibilityExtensions {
          if (u.TryGetValue(out T7 v7)) return f7(v7);
          if (u.TryGetValue(out T8 v8)) return f8(v8);
          if (_ is not null) return _();
-         return ThrowHelpers.ThrowInvalidOperationException<R>();
+         return ThrowInvalidOperation<R>();
       }
    }
 }
