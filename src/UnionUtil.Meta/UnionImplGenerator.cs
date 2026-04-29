@@ -226,7 +226,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
       var entries = args.StorageTypes.Entries;
       sb.Append(args.T);
       if (opts.Has(ImplementUnionInterfaces)) {
-         sb.Append($":{unionUtil}.{nameof(IUnionType)},{unionUtil}.{Config.UnionType.HasTypeCountName}{entries.Length}");
+         sb.Append($":{unionUtil}.{nameof(IUnionType)}");
       }
       sb.AppendLine(" {");
       var visibility = args.FieldVisibility.Keyword;

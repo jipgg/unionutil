@@ -1,3 +1,4 @@
+#pragma warning disable IDE0034
 using Union = Union<uint, ulong, System.UInt128>;
 using BoxUnion7 = BoxUnion7<uint, ulong, System.UInt128>;
 using BoxUnion23 = BoxUnion23<uint, ulong, System.UInt128>;
@@ -18,7 +19,7 @@ public partial struct BoxUnion0<T, U, V>;
 public class Constructor {
    [Benchmark]
    public Union Seq_WithSentinel_U32() {
-      return new(FromIndex1.Value, 1230);
+      return new(default(FromIndex1), 1230);
    }
    [Benchmark]
    public Union Seq_U32() {
@@ -30,7 +31,7 @@ public class Constructor {
    }
    [Benchmark]
    public BoxUnion23 Box23_WithSentinel_U32() {
-      return new(FromIndex1.Value, 1230);
+      return new(default(FromIndex1), 1230);
    }
    [Benchmark]
    public BoxUnion23 Box23_U32() {
@@ -42,7 +43,7 @@ public class Constructor {
    }
    [Benchmark]
    public BoxUnion7 Box7_WithSentinel_U32() {
-      return new(FromIndex1.Value, 1230);
+      return new(default(FromIndex1), 1230);
    }
    [Benchmark]
    public BoxUnion7 Box7_U32() {
@@ -54,7 +55,7 @@ public class Constructor {
    }
    [Benchmark]
    public BoxUnion0 Box0_WithSentinel_U32() {
-      return new(FromIndex1.Value, 1230);
+      return new(default(FromIndex1), 1230);
    }
    [Benchmark]
    public BoxUnion0 Box0_U32() {
@@ -67,7 +68,7 @@ public class Constructor {
 
    [Benchmark]
    public Union Seq_WithSentinel_U64() {
-      return new(FromIndex2.Value, 1230);
+      return new(default(FromIndex2), 1230);
    }
    [Benchmark]
    public Union Seq_U64() {
@@ -79,7 +80,7 @@ public class Constructor {
    }
    [Benchmark]
    public BoxUnion23 Box23_WithSentinel_U64() {
-      return new(FromIndex2.Value, 1230);
+      return new(default(FromIndex2), 1230);
    }
    [Benchmark]
    public BoxUnion23 Box23_U64() {
@@ -91,7 +92,7 @@ public class Constructor {
    }
    [Benchmark]
    public BoxUnion7 Box7_WithSentinel_U64() {
-      return new(FromIndex2.Value, 1230);
+      return new(default(FromIndex2), 1230);
    }
    [Benchmark]
    public BoxUnion7 Box7_U64() {
@@ -103,7 +104,7 @@ public class Constructor {
    }
    [Benchmark]
    public BoxUnion0 Box0_WithSentinel_U64() {
-      return new(FromIndex2.Value, 1230);
+      return new(default(FromIndex2), 1230);
    }
    [Benchmark]
    public BoxUnion0 Box0_U64() {
@@ -116,7 +117,7 @@ public class Constructor {
 
    [Benchmark]
    public Union Seq_WithSentinel_U128() {
-      return new(FromIndex3.Value, 1230);
+      return new(default(FromIndex3), 1230);
    }
    [Benchmark]
    public Union Seq_U128() {
@@ -128,7 +129,7 @@ public class Constructor {
    }
    [Benchmark]
    public BoxUnion23 Box23_WithSentinel_U128() {
-      return new(FromIndex3.Value, 1230);
+      return new(default(FromIndex3), 1230);
    }
    [Benchmark]
    public BoxUnion23 Box23_U128() {
@@ -140,7 +141,7 @@ public class Constructor {
    }
    [Benchmark]
    public BoxUnion7 Box7_WithSentinel_U128() {
-      return new(FromIndex3.Value, 1230);
+      return new(default(FromIndex3), 1230);
    }
    [Benchmark]
    public BoxUnion7 Box7_U128() {
@@ -152,7 +153,7 @@ public class Constructor {
    }
    [Benchmark]
    public BoxUnion0 Box0_WithSentinel_U128() {
-      return new(FromIndex3.Value, 1230);
+      return new(default(FromIndex3), 1230);
    }
    [Benchmark]
    public BoxUnion0 Box0_U128() {

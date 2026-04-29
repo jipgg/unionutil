@@ -1,10 +1,11 @@
+using System.Diagnostics;
 namespace UnionUtil.Internal.Meta;
 
 [Generator]
-public sealed class ArityRangeGenerator : IIncrementalGenerator {
+public sealed class VariadicRangeGenerator : IIncrementalGenerator {
    public void Initialize(IncrementalGeneratorInitializationContext context) {
       var provider = context.SyntaxProvider.ForAttributeWithMetadataName(
-         $"{nameof(UnionUtil)}.{nameof(ArityRangeAttribute)}",
+         $"{nameof(UnionUtil)}.{nameof(VariadicRangeAttribute)}",
          static (node, token) => node is TypeDeclarationSyntax { AttributeLists.Count: > 0 }
             and not RecordDeclarationSyntax or DelegateDeclarationSyntax,
          static (ctx, cancel) => {
@@ -20,6 +21,7 @@ public sealed class ArityRangeGenerator : IIncrementalGenerator {
                name: symbol.Name,
                start: (int)args[0].Value!,
                end: (int)args[1].Value!,
+               expansionType: (ExpansionType)args[2].Value!,
                modifiers,
                baseLists
             );
@@ -28,15 +30,27 @@ public sealed class ArityRangeGenerator : IIncrementalGenerator {
          var source = new StringBuilder(10 * (r.end - r.start));
          source.AppendLine("using System;");
          source.AppendLine($"namespace {nameof(UnionUtil)};");
-         for (int n = r.start; n <= r.end; ++n) {
-            var typeParams = string.Join(", ", Enumerable.Range(0, n).Select(static i => $"T{i + 1}"));
-            source.Append($"{r.modifiers} {r.name}<{typeParams}>");
-            if (r.baseLists is not null) {
-               source.Append(r.baseLists);
+         for (int i = r.start; i <= r.end; ++i) {
+            source.Append($"{r.modifiers} {r.name}");
+            switch (r.expansionType) {
+               case ExpansionType.Arity:
+                  var typeParams = string.Join(", ", Enumerable
+                        .Range(0, i)
+                        .Select(static e => $"T{e + 1}"));
+                  source.Append($"<{typeParams}>");
+                  break;
+               case ExpansionType.Name:
+                  while (source[source.Length - 1] is >= '0' and <= '9') {
+                     --source.Length;
+                  }
+                  source.Append(i);
+                  break;
+               default: throw new();
             }
+            if (r.baseLists is not null) source.Append(r.baseLists);
             source.AppendLine(";");
          }
-         ctx.AddSource($"{r.name}{{{r.start},{r.end}}}.g", source.ToString());
+         ctx.AddSource($"{r.name}{{{r.start},{r.end},{r.expansionType}}}.g", source.ToString());
       });
    }
 }
