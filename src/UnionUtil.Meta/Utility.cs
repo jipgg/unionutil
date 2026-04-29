@@ -141,18 +141,19 @@ static class Helpers {
 
 }
 static class TypeSymbolExtensions {
+   const string CanHoldTypes = "CanHoldTypes";
    extension(ITypeSymbol symbol) {
       public (ImmutableArray<ITypeSymbol>, bool ok) ResolveUnionTypeArgs() {
          var attr = symbol.GetAttributes()
             .SingleOrDefault(static e => Helpers.IsUnionUtil(e.AttributeClass)
-                  && e.AttributeClass?.Name is Config.UnionType.AttributeName);
+                  && e.AttributeClass?.Name is $"{CanHoldTypes}Attribute");
          if (attr?.AttributeClass is INamedTypeSymbol a) {
             return (a.TypeArguments, true);
          }
          var inter = symbol.Interfaces
             .SingleOrDefault(static e => Helpers.IsUnionUtil(e)
                   && e.Arity is not 0
-                  && e.Name is Config.UnionType.InterfaceName);
+                  && e.Name is $"I{CanHoldTypes}");
          if (inter is not null) {
             return (inter.TypeArguments, true);
          }

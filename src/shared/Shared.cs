@@ -10,6 +10,7 @@ file static class FileScoped {
    public const AttributeTargets Targets = AttributeTargets.Class | AttributeTargets.Struct;
 }
 
+
 #if NET7_0_OR_GREATER
 /// <summary>
 /// Represents a small, fixed-size buffer that can be embedded directly into a union
@@ -141,6 +142,8 @@ public enum UnionImplOptions : uint {
    /// in a type order agnostic manner. Mainly useful in generics <code>where TUnion : <see cref="IUnionType"/></code>.
    /// </summary>
    ImplementUnionInterfaces = 1 << 7,
+
+   ImplementFromIndexConstructors = 1 << 8,
 };
 public static class UnionImplOptionsExtenions {
    extension(UnionImplOptions opts) {

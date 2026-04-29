@@ -18,11 +18,11 @@ public partial struct Result<T, E> : ICanHoldTypes<T, E> where E : Exception;
 public partial struct Result<T> : ICanHoldTypes<T, Exception> {
    [MethodImpl(AggressiveInlining)]
    public static implicit operator Result<T, Exception>(Result<T> result) {
-      return Unsafe.As<Result<T>, Result<T, Exception>>(ref result);
+      return result._index is 1 ? result._1 : Unsafe.As<Exception>(result._box!);
    }
    [MethodImpl(AggressiveInlining)]
    public static implicit operator Result<T>(Result<T, Exception> result) {
-      return Unsafe.As<Result<T, Exception>, Result<T>>(ref result);
+      return result._index is 1 ? result._1 : result._2;
    }
 }
 
@@ -39,11 +39,17 @@ public partial struct BoxedResult<T, E> : ICanHoldTypes<T, E> where E : Exceptio
 public partial struct BoxedResult<T> : ICanHoldTypes<T, Exception> {
    [MethodImpl(AggressiveInlining)]
    public static implicit operator BoxedResult<T, Exception>(BoxedResult<T> result) {
-      return Unsafe.As<BoxedResult<T>, BoxedResult<T, Exception>>(ref result);
+      BoxedResult<T, Exception> r = default;
+      r._index = result._index;
+      r._box = result._box;
+      return r;
    }
    [MethodImpl(AggressiveInlining)]
    public static implicit operator BoxedResult<T>(BoxedResult<T, Exception> result) {
-      return Unsafe.As<BoxedResult<T, Exception>, BoxedResult<T>>(ref result);
+      BoxedResult<T> r = default;
+      r._index = result._index;
+      r._box = result._box;
+      return r;
    }
 }
 [UnionImpl(

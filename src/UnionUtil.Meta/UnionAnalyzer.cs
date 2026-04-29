@@ -25,10 +25,11 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       DiagnosticSeverity.Warning,
       true
    );
+   const string CanHoldTypesName = "CanHoldTypes";
    static readonly DiagnosticDescriptor TypesCouldNotBeInferred = new(
       "UU0002",
       "types could not be inferred",
-      $"could not infer types, mark them with '{Config.UnionType.InterfaceName}' or '{Config.UnionType.AttributeName}'",
+      $"could not infer types, mark them with 'I{CanHoldTypesName}' or '{CanHoldTypesName}Attribute'",
       "Usage",
       DiagnosticSeverity.Error,
       true
@@ -148,7 +149,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
             case nameof(SmallBufferOptimizedAttribute):
                sboSymbol = new(e.AttributeClass, loc);
                break;
-            case Config.UnionType.AttributeName:
+            case $"{CanHoldTypesName}Attribute":
                unionSymbol = new(e.AttributeClass, loc);
                break;
          }
