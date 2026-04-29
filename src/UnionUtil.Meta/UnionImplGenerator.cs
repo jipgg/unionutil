@@ -390,9 +390,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          string writeExpr;
          if (e.Kind is Kind.Open && e.Strategy is Strategy.Box) {
             if (TSbo is null) writeExpr = $"{BoxHelpersWrite(T, "v")}";
-            // if (TSbo is null) box = $"{objectField} = {GenericHelpersBox(T, "v")}";
             else writeExpr = $"{BoxHelpersWrite(T, TSbo, "v")}";
-            // else box = $"{GenericHelpersSboBox(T, TSbo, sboField, objectField, "v")}";
          } else writeExpr = $"{objectField} = v;";
          writeConstructor(e, writeExpr);
          var getExpr = e.Kind switch {
