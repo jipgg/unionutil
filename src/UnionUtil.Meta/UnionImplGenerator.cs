@@ -2,11 +2,17 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using SpanUtility;
 namespace UnionUtil.Meta;
 
 using static UnionImplOptions;
 using static SymbolDisplayFormat;
 
+readonly record struct Optional<T>(T Value) {
+   public readonly bool HasValue = true;
+   public static implicit operator bool(in Optional<T> o) => o.HasValue;
+   public static implicit operator Optional<T>(T v) => new(v);
+}
 enum Strategy : byte { Box, Sequential, Overlap };
 enum Kind : byte { Unmanaged, Open, Reference, Value, Interface };
 readonly record struct StorageEntry(int TypeIndex, string TypeName, Kind Kind, Strategy Strategy);
@@ -249,7 +255,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
                {{indexField}} = {{arg.TypeIndex}};
             }
          """);
-         skip_implement_from_index_constructors:
+      skip_implement_from_index_constructors:
          if (opts.Has(NoImplicitConversions)) return;
          if (arg.Kind is not Kind.Interface) sb.AppendLine($$"""
             [{{aggressiveInlining}}]

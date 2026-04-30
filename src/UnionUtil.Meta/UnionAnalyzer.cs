@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using System.Runtime.CompilerServices;
 using System.Buffers;
+using SpanUtility;
 namespace UnionUtil.Meta;
 
 using static SyntaxKind;

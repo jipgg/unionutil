@@ -10,7 +10,6 @@ file static class FileScoped {
    public const AttributeTargets Targets = AttributeTargets.Class | AttributeTargets.Struct;
 }
 
-
 #if NET7_0_OR_GREATER
 /// <summary>
 /// Represents a small, fixed-size buffer that can be embedded directly into a union

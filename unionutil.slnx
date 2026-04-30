@@ -6,7 +6,6 @@
   <Folder Name="/src/">
     <Project Path="src/UnionUtil/UnionUtil.csproj" />
     <Project Path="src/UnionUtil.Meta/UnionUtil.Meta.csproj" />
-     <Project Path="src/UnionUtil.Internal.Meta/UnionUtil.Internal.Meta.csproj" />
   </Folder>
   <Project Path="test/Test.csproj" />
 </Solution>

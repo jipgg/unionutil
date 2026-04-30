@@ -6,6 +6,7 @@ namespace UnionUtil;
 using static MethodImplOptions;
 
 public static class ThrowHelpers {
+#if NET7_0_OR_GREATER
    [DoesNotReturn, MethodImpl(NoInlining)]
    public static void ThrowUnreachable() => throw new UnreachableException();
    [DoesNotReturn, MethodImpl(NoInlining)]
@@ -15,14 +16,27 @@ public static class ThrowHelpers {
    public static T ThrowUnreachable<T>() => throw new UnreachableException();
    [DoesNotReturn, MethodImpl(NoInlining)]
    public static T ThrowUnreachable<T>(string? message) => throw new UnreachableException(message);
+#endif
 
-   [DoesNotReturn, MethodImpl(NoInlining)]
+#if NET5_0_OR_GREATER
+   [DoesNotReturn]
+#endif
+   [MethodImpl(NoInlining)]
    public static void ThrowInvalidOperation() => throw new InvalidOperationException();
-   [DoesNotReturn, MethodImpl(NoInlining)]
+#if NET5_0_OR_GREATER
+   [DoesNotReturn]
+#endif
+   [MethodImpl(NoInlining)]
    public static void ThrowInvalidOperation(string message) => throw new InvalidOperationException(message);
 
-   [DoesNotReturn, MethodImpl(NoInlining)]
+#if NET5_0_OR_GREATER
+   [DoesNotReturn]
+#endif
+   [MethodImpl(NoInlining)]
    public static T ThrowInvalidOperation<T>() => throw new InvalidOperationException();
-   [DoesNotReturn, MethodImpl(NoInlining)]
+#if NET5_0_OR_GREATER
+   [DoesNotReturn]
+#endif
+   [MethodImpl(NoInlining)]
    public static T ThrowInvalidOperation<T>(string message) => throw new InvalidOperationException(message);
 }

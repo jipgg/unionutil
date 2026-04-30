@@ -8,35 +8,6 @@ using static Result;
 using static MutableTag;
 using static UnionImplOptions;
 
-static class MatchExtensions {
-   public static R Match2<TUnion, [CanHold(unique: true)] T1, [CanHold(unique: true)] T2, R>(this TUnion u, Func<T1, R> f1, Func<T2, R> f2, Func<R>? @default = null) where TUnion : IUnionType {
-      if (u.TryGetValue(out T1 v1)) return f1(v1);
-      if (u.TryGetValue(out T2 v2)) return f2(v2);
-      if (@default is not null) return @default();
-      throw new InvalidOperationException();
-   }
-   extension<TUnion>(TUnion u) where TUnion : IUnionType {
-      public R Match<[CanHold] T1, R>(Func<T1, R> f1, Func<R>? @default = null) {
-         if (u.TryGetValue(out T1 v1)) return f1(v1);
-         if (@default is not null) return @default();
-         throw new InvalidOperationException();
-      }
-      public R Match<[CanHold(unique: true)] T1, [CanHold(unique: true)] T2, R>(Func<T1, R> f1, Func<T2, R> f2, Func<R>? @default = null) {
-         if (u.TryGetValue(out T1 v1)) return f1(v1);
-         if (u.TryGetValue(out T2 v2)) return f2(v2);
-         if (@default is not null) return @default();
-         throw new InvalidOperationException();
-      }
-      public R Match<[CanHold(unique: true)] T1, [CanHold(unique: true)] T2, [CanHold(unique: true)] T3, R>(Func<T1, R> f1, Func<T2, R> f2, Func<T3, R> f3, Func<R>? @default = null) {
-         if (u.TryGetValue(out T1 v1)) return f1(v1);
-         if (u.TryGetValue(out T2 v2)) return f2(v2);
-         if (u.TryGetValue(out T3 v3)) return f3(v3);
-         if (@default is not null) return @default();
-         throw new InvalidOperationException();
-      }
-   }
-}
-
 public enum MutableTag { Int = 9, Double = 1, Vector3 = -3 }
 
 [Tagged<MutableTag>]
@@ -183,7 +154,7 @@ public class MutableStructTests {
       var c = u.Switch(
          static (int x) => x,
          static (double[] d) => d.Sum(),
-         static (Int128 x) => ((int)x)
+         static (Int128 x) => (int)x
       );
       TestUnion.Reassign(ref u, 1, 123);
       Int128 x = new(123, 123);
