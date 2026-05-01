@@ -11,7 +11,7 @@ public static class TestUnion {
       int SmallBufferSize,
       int TypeCount
    );
-   public static async Task AssertSameMetadata<TUnion>(TUnion u, Metadata expected) where TUnion : IUnionType {
+   public static async Task AssertSameMetadata<TUnion>(TUnion _, Metadata expected) where TUnion : IUnionType {
       await Assert.That(TUnion.BoxesOpenGenerics).IsEqualTo(expected.BoxesOpenGenerics);
       await Assert.That(TUnion.BoxesManagedStructs).IsEqualTo(expected.BoxesManagedStructs);
       await Assert.That(TUnion.IsReadOnly).IsEqualTo(expected.IsReadOnly);

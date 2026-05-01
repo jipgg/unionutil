@@ -1,6 +1,10 @@
 #!/bin/env dotnet
 #:project _shared.csproj
-#:property PublishAot=false
+#:property PublishAot=true
+// feels like this is the least complicated way to generate this specific static boilerplate
+// Dont really need to inspect the syntax tree for this so the internal generator project was a bit overkill imo.
+// currently will overwrite the same file each recompilation of the main UnionUtil project
+// for each target framework so will contest the same file, i should fix this eventually.
 using System.Runtime.CompilerServices;
 using static UnionUtil.Internal.MetaConfiguration;
 using System.Text;
@@ -53,18 +57,14 @@ sb.AppendLine("""
       }
    }
    """);
-File.WriteAllText(outputDir / "GenericOverloads.g.cs", sb.ToString());
+await File.WriteAllTextAsync(outputDir / "GenericOverloads.g.cs", sb.ToString());
 
 Console.WriteLine("Done.");
 
-static string GetFilePath([CallerFilePath] string filePath = default!) {
-   return filePath;
-}
+static string GetFilePath([CallerFilePath] string filePath = default!) => filePath;
 static class PathExtensions {
    extension(ReadOnlySpan<char> s) {
-      public static string operator /(ReadOnlySpan<char> basePath, ReadOnlySpan<char> path) {
-         return Path.Join(basePath, path);
-      }
+      public static string operator /(ReadOnlySpan<char> basePath, ReadOnlySpan<char> path) => Path.Join(basePath, path);
       public ReadOnlySpan<char> ParentPath => Path.GetDirectoryName(s);
    }
 }
