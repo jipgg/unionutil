@@ -517,22 +517,22 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
          };
       """);
       if (isReadOnly) sb.AppendLine($"""
-            static bool {@interface}.IsReadOnly => true;
+         static bool {@interface}.IsReadOnly => true;
       """);
       if (isNullable) sb.AppendLine($"""
-            static bool {@interface}.IsNullable => true;
+         static bool {@interface}.IsNullable => true;
       """);
       if (opts.Has(BoxManagedStructs)) sb.AppendLine($"""
-            static bool {@interface}.BoxesManagedStructs => true;
+         static bool {@interface}.BoxesManagedStructs => true;
       """);
       if (opts.Has(BoxOpenGenerics)) sb.AppendLine($"""
-            static bool {@interface}.BoxesOpenGenerics => true;
+         static bool {@interface}.BoxesOpenGenerics => true;
       """);
       if (args.SmallBufferOptimized.Tag is Sbo.Size) sb.AppendLine($"""
-            static int {@interface}.SmallBufferSize => {args.SmallBufferOptimized.Size};
+         static int {@interface}.SmallBufferSize => {args.SmallBufferOptimized.Size};
       """);
       else if (args.SmallBufferOptimized.Tag is Sbo.Name) sb.AppendLine($"""
-            static int {@interface}.SmallBufferSize => {boxHelpers}.GetSmallBufferSize<{args.SmallBufferOptimized.Name}>();
+         static int {@interface}.SmallBufferSize => {boxHelpers}.GetSmallBufferSize<{args.SmallBufferOptimized.Name}>();
       """);
       sb.AppendLine($$"""
             [{{aggressiveInlining}}]

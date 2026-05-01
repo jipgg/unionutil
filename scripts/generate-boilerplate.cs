@@ -3,8 +3,6 @@
 #:property PublishAot=true
 // feels like this is the least complicated way to generate this specific static boilerplate
 // Dont really need to inspect the syntax tree for this so the internal generator project was a bit overkill imo.
-// currently will overwrite the same file each recompilation of the main UnionUtil project
-// for each target framework so will contest the same file, i should fix this eventually.
 using System.Runtime.CompilerServices;
 using static UnionUtil.Internal.MetaConfiguration;
 using System.Text;
