@@ -7,15 +7,15 @@ using static UnionImplOptions;
 
 public enum Result { Ok, Err }
 
-[UnionImpl, CanHoldTypes<bool, Exception>, Tagged<Result>]
+[UnionImpl, CanHold<bool, Exception>, Tagged<Result>]
 partial struct ResultVoid;
 
 [Tagged<Result>, UnionImpl(FieldVisibility = Visibility.Internal)]
-public partial struct Result<T, E> : ICanHoldTypes<T, E> where E : Exception;
+public partial struct Result<T, E> : ICanHold<T, E> where E : Exception;
 
 [UnionImpl(FieldVisibility = Visibility.Internal)]
 [Tagged<Result>]
-public partial struct Result<T> : ICanHoldTypes<T, Exception> {
+public partial struct Result<T> : ICanHold<T, Exception> {
    [MethodImpl(AggressiveInlining)]
    public static implicit operator Result<T, Exception>(Result<T> result) {
       return result._index is 1 ? result._1 : Unsafe.As<Exception>(result._box!);
@@ -30,13 +30,13 @@ public partial struct Result<T> : ICanHoldTypes<T, Exception> {
    BoxManagedStructs | BoxOpenGenerics | ImplementHoldsTypeMethod,
    FieldVisibility = Visibility.Internal
 )]
-public partial struct BoxedResult<T, E> : ICanHoldTypes<T, E> where E : Exception;
+public partial struct BoxedResult<T, E> : ICanHold<T, E> where E : Exception;
 
 [Tagged<Result>, UnionImpl(
       BoxManagedStructs | BoxOpenGenerics | ImplementHoldsTypeMethod,
       FieldVisibility = Visibility.Internal
 )]
-public partial struct BoxedResult<T> : ICanHoldTypes<T, Exception> {
+public partial struct BoxedResult<T> : ICanHold<T, Exception> {
    [MethodImpl(AggressiveInlining)]
    public static implicit operator BoxedResult<T, Exception>(BoxedResult<T> result) {
       BoxedResult<T, Exception> r = default;
@@ -66,7 +66,7 @@ public partial struct Sbo55<T1, T2, T3>;
    EnableNullable | BoxOpenGenerics | ImplementHoldsTypeMethod | ImplementUnionInterfaces,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(15)]
-public partial struct Sbo15<T1, T2, T3> : ICanHoldTypes<T1, T2, T3>;
+public partial struct Sbo15<T1, T2, T3> : ICanHold<T1, T2, T3>;
 [UnionImpl(EnableNullable | BoxOpenGenerics | ImplementHoldsTypeMethod | ImplementUnionInterfaces,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized<SBO7>]

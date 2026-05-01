@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
-using Union = Union<uint, ulong, System.UInt128, U256>;
+using Union = UnionUtil.Generic.ValueUnion<uint, ulong, System.UInt128, U256>;
 using BoxUnion7 = BoxUnion7<uint, ulong, System.UInt128, U256>;
-using BoxUnion23 = BoxUnion23<uint, ulong, System.UInt128, U256>;
+using BoxUnion23 = UnionUtil.Generic.UnionBox<uint, ulong, System.UInt128, U256>;
 using BoxUnion0 = BoxUnion0<uint, ulong, System.UInt128, U256>;
 
 [InlineArray(256)]
@@ -11,10 +11,10 @@ struct U256 {
    public U256(long v) => Unsafe.WriteUnaligned(ref _0, v);
 }
 
-[UnionImpl(ImplementFromIndexConstructors)]
-public partial struct Union<T, U, V, W>;
-[UnionImpl(BoxOpenGenerics | ImplementFromIndexConstructors), SmallBufferOptimized(23)]
-public partial struct BoxUnion23<T, U, V, W>;
+// [UnionImpl(ImplementFromIndexConstructors)]
+// public partial struct Union<T, U, V, W>;
+// [UnionImpl(BoxOpenGenerics | ImplementFromIndexConstructors), SmallBufferOptimized(23)]
+// public partial struct BoxUnion23<T, U, V, W>;
 
 [UnionImpl(BoxOpenGenerics | ImplementFromIndexConstructors), SmallBufferOptimized(7)]
 public partial struct BoxUnion7<T, U, V, W>;

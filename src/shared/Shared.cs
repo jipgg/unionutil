@@ -177,7 +177,7 @@ public interface IUnionType {
    /// Returns <see langword="true"/> if <typeparamref name="T"/> is among the types this union
    /// is declared to hold, regardless of its current state.
    /// </summary>
-   abstract static bool CanHoldType<T>();
+   abstract static bool CanHold<T>();
 
    /// <summary>
    /// Gets a value indicating whether the union is immutable after construction.
@@ -198,7 +198,7 @@ public interface IUnionType {
    /// <summary>
    /// Returns <see langword="true"/> if the currently stored value is of type <typeparamref name="T"/>.
    /// </summary>
-   bool HoldsType<T>();
+   bool Holds<T>();
 
    /// <summary>
    /// Gets the currently stored value boxed as <see cref="object"/>,

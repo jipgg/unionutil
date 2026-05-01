@@ -12,7 +12,7 @@ public enum MutableTag { Int = 9, Double = 1, Vector3 = -3 }
 
 [Tagged<MutableTag>]
 [UnionImpl(EnableNullable)]
-[CanHoldTypes<int, double, Vector3>]
+[CanHold<int, double, Vector3>]
 partial struct MutableStruct;
 
 [UnionImpl(ImplementHoldsTypeMethod | ImplementUnionInterfaces)]
@@ -57,16 +57,16 @@ public class MutableStructTests {
    public void Boxed() {
       BoxedResult<int, Exception> r = 1;
       Assert.Equal(Ok, r.Tag);
-      Assert.True(r.HoldsType<int>());
-      r.HoldsType<int>();
-      Assert.False(r.HoldsType<Exception>());
+      Assert.True(r.Holds<int>());
+      r.Holds<int>();
+      Assert.False(r.Holds<Exception>());
       Assert.Equal(1, r.Ok);
       r.Ok += 123;
       Assert.ThrowsAny<InvalidOperationException>(() => r.Err);
       Assert.Equal(124, r.Ok);
       r.Err = new("abc");
-      Assert.True(r.HoldsType<Exception>());
-      Assert.False(r.HoldsType<int>());
+      Assert.True(r.Holds<Exception>());
+      Assert.False(r.Holds<int>());
       Assert.Equal(Err, r.Tag);
       Assert.ThrowsAny<InvalidOperationException>(() => r.Ok);
       Assert.Equal("abc", r.Err.Message);
@@ -85,14 +85,14 @@ public class MutableStructTests {
    }
    static void TestCommonInterface<TUnion, [CanHold] T, [CanHold] U>(ref TUnion u, T v, U v2) where TUnion : IUnionType where T : IEquatable<T> {
       Assert.True(u.TryGetValue(out T x));
-      Assert.True(u.HoldsType<T>());
+      Assert.True(u.Holds<T>());
       Assert.Equal(v, x);
-      Assert.True(TUnion.CanHoldType<T>());
-      Assert.True(u.TrySetValue((v2)));
+      Assert.True(TUnion.CanHold<T>());
+      Assert.True(u.TrySetValue(v2));
       Assert.True(u.TryGetValue(out U x2));
       Assert.Equal(v2, x2);
-      Assert.True(TUnion.CanHoldType<U>());
-      Assert.True(u.HoldsType<U>());
+      Assert.True(TUnion.CanHold<U>());
+      Assert.True(u.Holds<U>());
    }
    [Fact]
    public void SBOWorks() {
@@ -124,9 +124,9 @@ public class MutableStructTests {
       Assert.Equal(16, Unsafe.SizeOf<Sbo7<int, double, Exception>>());
       Assert.NotNull(sbo7._box);
       IUnionType sv = sbo7;
-      Assert.True(sv.HoldsType<double>());
-      Assert.False(sv.HoldsType<object>());
-      Assert.True(sbo7.HoldsType<double>());
+      Assert.True(sv.Holds<double>());
+      Assert.False(sv.Holds<object>());
+      Assert.True(sbo7.Holds<double>());
       Assert.True(sbo7.TryGetValue(out double d));
       Assert.Equal(0.5, d);
       Assert.Equal(2, sbo7._index);
@@ -165,4 +165,10 @@ public class MutableStructTests {
       Assert.False(u.TryGetValue(out Int128 _));
       Assert.Equal(1, u.Value);
    }
+   [Fact]
+   public void Abc() {
+      UnionUtil.Generic.Union<int, float, double, byte, Half, UInt128> u = 123;
+      Assert.Equal(32, Unsafe.SizeOf<UnionUtil.Generic.Union<int, float, double, byte, Half, UInt128>>());
+   }
+
 }

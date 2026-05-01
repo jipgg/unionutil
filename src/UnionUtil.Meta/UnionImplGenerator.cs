@@ -8,11 +8,6 @@ namespace UnionUtil.Meta;
 using static UnionImplOptions;
 using static SymbolDisplayFormat;
 
-readonly record struct Optional<T>(T Value) {
-   public readonly bool HasValue = true;
-   public static implicit operator bool(in Optional<T> o) => o.HasValue;
-   public static implicit operator Optional<T>(T v) => new(v);
-}
 enum Strategy : byte { Box, Sequential, Overlap };
 enum Kind : byte { Unmanaged, Open, Reference, Value, Interface };
 readonly record struct StorageEntry(int TypeIndex, string TypeName, Kind Kind, Strategy Strategy);
@@ -445,7 +440,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
       if (!opts.Has(ImplementHoldsTypeMethod)) goto skip_include_holds_type_method;
       sb.AppendLine($$"""
          [{{aggressiveInlining}}]
-         public{{ro}} bool HoldsType<Type>() => {{indexField}} switch {
+         public{{ro}} bool Holds<Type>() => {{indexField}} switch {
       """);
       foreach (var e in entries) sb.AppendLine($"      {e.TypeIndex} => typeof(Type) == typeof({e.TypeName}),");
       sb.AppendLine($$"""
@@ -514,7 +509,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
       var canHoldTypeExpr = string.Join("||", entries.Select(static e => $"typeof(Tx) == typeof({e.TypeName})"));
       sb.AppendLine($$"""
          [{{aggressiveInlining}}]
-         bool {{@interface}}.HoldsType<Tx>() => {{indexField}} switch {
+         bool {{@interface}}.Holds<Tx>() => {{indexField}} switch {
       """);
       foreach (var e in entries) sb.AppendLine($"      {e.TypeIndex} => typeof(Tx) == typeof({e.TypeName}),");
       sb.AppendLine($$"""
@@ -541,7 +536,7 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
       """);
       sb.AppendLine($$"""
             [{{aggressiveInlining}}]
-            static bool {{@interface}}.CanHoldType<Tx>() => {{canHoldTypeExpr}};
+            static bool {{@interface}}.CanHold<Tx>() => {{canHoldTypeExpr}};
             static int {{@interface}}.TypeCount => {{entries.Length}};
             object? {{@interface}}.Value => Value;
             bool {{@interface}}.HasValue => {{(isNullable ? "HasValue" : "true")}};

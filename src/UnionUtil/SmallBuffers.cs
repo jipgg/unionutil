@@ -14,15 +14,9 @@ public struct SmallBuffer7 : ISmallBuffer {
    byte _element5;
    byte _element6;
 
-   public static int Size {
-      [MethodImpl(AggressiveInlining)]
-      get => 7;
-   }
+   public static int Size => 7;
    [UnscopedRef]
-   public ref byte Data {
-      [MethodImpl(AggressiveInlining)]
-      get => ref _element0;
-   }
+   public ref byte Data => ref _element0;
 }
 public struct SmallBuffer15 : ISmallBuffer {
    byte _element0;
@@ -41,15 +35,9 @@ public struct SmallBuffer15 : ISmallBuffer {
    byte _element13;
    byte _element14;
 
-   public static int Size {
-      [MethodImpl(AggressiveInlining)]
-      get => 15;
-   }
+   public static int Size => 15;
    [UnscopedRef]
-   public ref byte Data {
-      [MethodImpl(AggressiveInlining)]
-      get => ref _element0;
-   }
+   public ref byte Data => ref _element0;
 }
 public struct SmallBuffer23 : ISmallBuffer {
    byte _element0;
@@ -76,13 +64,7 @@ public struct SmallBuffer23 : ISmallBuffer {
    byte _element21;
    byte _element22;
 
-   public static int Size {
-      [MethodImpl(AggressiveInlining)]
-      get => 23;
-   }
+   public static int Size => 23;
    [UnscopedRef]
-   public ref byte Data {
-      [MethodImpl(AggressiveInlining)]
-      get => ref _element0;
-   }
+   public ref byte Data => ref _element0;
 }

@@ -5,13 +5,13 @@ global using System.Runtime.CompilerServices;
 namespace Test;
 
 [UnionImpl(EnableNullable | ImplementUnionInterfaces | EnableReadOnly)]
-[CanHoldTypes<int, float, double>]
+[CanHold<int, float, double>]
 partial class TestCase_A;
 
 [UnionImpl(ImplementUnionInterfaces | BoxManagedStructs | BoxOpenGenerics)]
 [SmallBufferOptimized(123)]
-[CanHoldTypes<int, float, Exception, double>]
-partial struct TestCase_B<T> : ICanHoldTypes<int, float, Exception, T>;
+[CanHold<int, float, Exception, double>]
+partial struct TestCase_B<T> : ICanHold<int, float, Exception, T>;
 
 [InlineArray(12)]
 struct TestSmallBuffer : ISmallBuffer {
@@ -58,5 +58,4 @@ public class GenerationCorrectness {
          TypeCount: 2
       ));
    }
-
 }

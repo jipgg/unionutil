@@ -3,17 +3,17 @@ namespace Test.MustCompile;
 using static UnionImplOptions;
 
 [UnionImpl(FieldVisibility = Visibility.Public)]
-sealed partial class SealedClass : ICanHoldTypes<int, float, object, List<object>>;
+sealed partial class SealedClass : ICanHold<int, float, object, List<object>>;
 
 
-[UnionImpl(EnableReadOnly), CanHoldTypes<int, float>]
+[UnionImpl(EnableReadOnly), CanHold<int, float>]
 partial struct ReadonlyStruct;
 
 [UnionImpl(BoxOpenGenerics), SmallBufferOptimized]
-readonly partial struct ReadonlyStructSbo<T, U> : ICanHoldTypes<T, U>;
+readonly partial struct ReadonlyStructSbo<T, U> : ICanHold<T, U>;
 
 [UnionImpl(BoxOpenGenerics)]
-readonly partial struct ReadonlyStruct<T, U> : ICanHoldTypes<T, U>;
+readonly partial struct ReadonlyStruct<T, U> : ICanHold<T, U>;
 
 [UnionImpl]
-readonly partial struct ReadonlyStructSequential<T, U> : ICanHoldTypes<T, U>;
+readonly partial struct ReadonlyStructSequential<T, U> : ICanHold<T, U>;
