@@ -1,9 +1,42 @@
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using UnionUtil;
 namespace Test;
 
 using static MethodImplOptions;
 using static UnionImplOptions;
+
+public enum MutableTag { Int = 9, Double = 1, Vector3 = -3 }
+
+public struct ManagedValue { public string Text; }
+
+[UnionImpl(BoxManagedStructs | ImplementUnionInterfaces, FieldVisibility = Visibility.Internal)]
+[SmallBufferOptimized(23)]
+public partial struct ManagedStructUnion : ICanHold<int, ManagedValue>;
+
+[Tagged<MutableTag>]
+[UnionImpl(EnableNullable)]
+[CanHold<int, double, Vector3>]
+partial struct MutableStruct;
+
+[UnionImpl(ImplementHoldsTypeMethod | ImplementUnionInterfaces)]
+partial struct ClassUnion<T, U, V> where T : class where U : class where V : class;
+
+[UnionImpl(BoxOpenGenerics | ImplementUnionInterfaces,
+      FieldVisibility = Visibility.Internal), SmallBufferOptimized]
+partial struct Union<T, U, V>;
+[UnionImpl(BoxOpenGenerics | ImplementUnionInterfaces,
+      FieldVisibility = Visibility.Internal), SmallBufferOptimized]
+readonly partial struct ReadOnlyUnion<T, U, V>;
+
+[UnionImpl]
+partial struct MutableStruct2<T> where T : struct;
+
+public enum Case { A, B, C, D, E, F, G }
+[Tagged<Case>("Case"), UnionImpl(
+   FieldVisibility = Visibility.Internal
+)]
+public partial class BasicUnion<TA, TB, TC, TD, TE, TF, TG>;
 
 public enum Result { Ok, Err }
 
@@ -71,6 +104,7 @@ public partial struct Sbo15<T1, T2, T3> : ICanHold<T1, T2, T3>;
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized<SBO7>]
 public partial struct Sbo7<T1, T2, T3>;
+
 [InlineArray(7)]
 public struct SBO7 : ISmallBuffer {
    byte _element0;

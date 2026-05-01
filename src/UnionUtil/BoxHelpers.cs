@@ -32,7 +32,7 @@ public static class BoxHelpers {
          Unsafe.WriteUnaligned(ref sbo.Data, v);
          return;
       }
-      if (typeof(T).IsValueType) ThrowUnreachable();
+      if (typeof(T).IsValueType) goto update_boxed;
       obj = v;
       return;
    update_boxed:

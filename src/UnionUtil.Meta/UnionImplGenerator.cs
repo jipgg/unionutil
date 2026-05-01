@@ -400,8 +400,8 @@ public sealed class UnionImplGenerator : IIncrementalGenerator {
             _ => TSbo is not null ? BoxHelpersRead(T, TSbo) : BoxHelpersRead(T),
          };
          var refExpr = e.Kind switch {
-            Kind.Interface or Kind.Reference => $"{@unsafe}.As<object?,{T}>(ref {objectField}!)",
-            Kind.Value or Kind.Unmanaged => $"{@unsafe}.Unbox<{T}>({objectField}!)",
+            Kind.Interface or Kind.Reference => $"{objectField} = v",
+            Kind.Value or Kind.Unmanaged => $"{@unsafe}.Unbox<{T}>({objectField}!) = v",
             _ => TSbo is not null ? BoxHelpersUpdate(T, TSbo, "v") : BoxHelpersUpdate(T, "v"),
          };
          writeProperties(e, getExpr);

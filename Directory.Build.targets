@@ -1,0 +1,20 @@
+<Project>
+  <!--
+    Workaround for microsoft.testing.platform.msbuild 2.2.1:
+    _MTPBeforeVSTest unconditionally throws on SDK >= 10, even when
+    TestingPlatformDotnetTestSupport=true is set (the documented opt-in).
+    We override it here (Directory.Build.targets loads after package targets)
+    to add the missing guard.
+  -->
+  <Target Name="_MTPBeforeVSTest" BeforeTargets="VSTest">
+    <PropertyGroup>
+      <_SdkMajorVersion>$(NETCoreSdkVersion.Split('.')[0])</_SdkMajorVersion>
+      <_SupportsGlobalJsonTestRunner Condition="'$(NETCoreSdkVersion)' != '' AND '$(_SdkMajorVersion)' &gt;= '10'">true</_SupportsGlobalJsonTestRunner>
+    </PropertyGroup>
+
+    <Error Text="Testing with VSTest target is no longer supported by Microsoft.Testing.Platform on .NET 10 SDK and later. If you use dotnet test, you should opt-in to the new dotnet test experience. For more information, see https://aka.ms/dotnet-test-mtp-error"
+           Condition="'$(IsTestingPlatformApplication)'=='true' AND '$(TargetFramework)'!='' AND '$(_SupportsGlobalJsonTestRunner)'=='true' AND '$(TestingPlatformDotnetTestSupport)' != 'true'" />
+
+    <CallTarget Condition="'$(VSTestNoBuild)' != 'true' AND '$(TargetFramework)'!=''" Targets="BuildProject" />
+  </Target>
+</Project>

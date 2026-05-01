@@ -2,6 +2,7 @@ global using UnionUtil;
 global using System.Diagnostics.CodeAnalysis;
 global using static UnionUtil.UnionImplOptions;
 global using System.Runtime.CompilerServices;
+global using TUnit.Assertions;
 namespace Test;
 
 [UnionImpl(EnableNullable | ImplementUnionInterfaces | EnableReadOnly)]
@@ -24,10 +25,10 @@ struct TestSmallBuffer : ISmallBuffer {
 [SmallBufferOptimized<TestSmallBuffer>]
 partial struct TestCase_C<T, U>;
 
-public class GenerationCorrectness {
-   [Fact]
-   public void SameMetadata_A() {
-      TestUnion.AssertSameMetadata(new TestCase_A(123), new(
+public class GenerationCorrectnessTests {
+   [Test]
+   public async Task SameMetadata_A() {
+      await TestUnion.AssertSameMetadata(new TestCase_A(123), new(
          BoxesOpenGenerics: false,
          BoxesManagedStructs: false,
          IsReadOnly: true,
@@ -36,9 +37,9 @@ public class GenerationCorrectness {
          TypeCount: 3
       ));
    }
-   [Fact]
-   public void SameMetadata_B() {
-      TestUnion.AssertSameMetadata(new TestCase_B<double>(new Exception()), new(
+   [Test]
+   public async Task SameMetadata_B() {
+      await TestUnion.AssertSameMetadata(new TestCase_B<double>(new Exception()), new(
          BoxesOpenGenerics: true,
          BoxesManagedStructs: true,
          IsReadOnly: false,
@@ -47,9 +48,9 @@ public class GenerationCorrectness {
          TypeCount: 4
       ));
    }
-   [Fact]
-   public void SameMetadata_C() {
-      TestUnion.AssertSameMetadata(new TestCase_C<double, int>(1), new(
+   [Test]
+   public async Task SameMetadata_C() {
+      await TestUnion.AssertSameMetadata(new TestCase_C<double, int>(1), new(
          BoxesOpenGenerics: true,
          BoxesManagedStructs: false,
          IsReadOnly: false,
