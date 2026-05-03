@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
-namespace UnionUtil;
+namespace UnionUtil.Internal;
 
 using static ThrowHelpers;
 using static MethodImplOptions;

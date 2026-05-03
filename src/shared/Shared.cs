@@ -46,7 +46,7 @@ public sealed class SmallBufferOptimizedAttribute<TSmallBuffer>() : Attribute wh
 #endif
 
 [AttributeUsage(AttributeTargets.GenericParameter)]
-public sealed class HoldableAttribute(string? typeParamNameOfUnion = null, bool unique = false) : Attribute;
+public sealed class HoldableTypeArgumentAttribute(string? typeParamNameOfUnion = null, bool unique = false) : Attribute;
 
 /// <summary>
 /// Adds a strongly-typed tag field to the generated union and
@@ -144,7 +144,7 @@ public enum UnionGeneratorOptions : uint {
 
    EnableFromTypeArgumentConstructors = 1 << 8,
 };
-public static class UnionGeneratorExtensions {
+public static class UnionGeneratorOptionsExtensions {
    extension(UnionGeneratorOptions opts) {
       public bool Has(UnionGeneratorOptions opt) {
          return (opts & opt) != 0;

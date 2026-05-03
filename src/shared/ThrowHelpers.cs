@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-namespace UnionUtil;
+namespace UnionUtil.Internal;
 
 using static MethodImplOptions;
 

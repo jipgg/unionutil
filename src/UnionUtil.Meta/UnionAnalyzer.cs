@@ -223,7 +223,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
          AttributeData? canHoldAttr = null;
          foreach (var attr in tp.GetAttributes()) {
             if (!Helpers.IsUnionUtil(attr)) continue;
-            if (attr.AttributeClass!.MetadataName is not nameof(HoldableAttribute)) continue;
+            if (attr.AttributeClass!.MetadataName is not nameof(HoldableTypeArgumentAttribute)) continue;
             canHoldAttr = attr;
             break;
          }
@@ -321,7 +321,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
    static readonly DiagnosticDescriptor CanHoldNoUnionSource = new(
       "UU0006",
       "CanHold has no union source",
-      $"'{{0}}' is marked with {nameof(HoldableAttribute)} but no unique {nameof(IUnionType)}-constrained type parameter exists",
+      $"'{{0}}' is marked with {nameof(HoldableTypeArgumentAttribute)} but no unique {nameof(IUnionType)}-constrained type parameter exists",
       "Usage",
       DiagnosticSeverity.Warning,
       true
@@ -363,7 +363,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       for (int i = 0; i < typeParams.Length; i++) {
          var tp = typeParams[i];
          var canHold = tp.GetAttributes()
-            .FirstOrDefault(a => Helpers.IsUnionUtil(a) && a.AttributeClass!.Name is nameof(HoldableAttribute));
+            .FirstOrDefault(a => Helpers.IsUnionUtil(a) && a.AttributeClass!.Name is nameof(HoldableTypeArgumentAttribute));
 
          if (canHold is null) continue;
 

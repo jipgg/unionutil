@@ -17,6 +17,7 @@ sb.AppendLine("""
    #nullable enable
    using System;
    using System.Runtime.CompilerServices;
+   using UnionUtil.Internal;
    namespace UnionUtil {
    using static MethodImplOptions;
    """);
@@ -37,7 +38,7 @@ sb.AppendLine($$"""
       extension<TUnion>(TUnion u) where TUnion : {{nameof(IUnionType)}} {
    """);
 for (var n = 1; n <= ArityCount; n++) {
-   var typeParams = string.Join(", ", Enumerable.Range(1, n).Select(i => $"[{nameof(HoldableAttribute)}(unique: true)] T{i}"));
+   var typeParams = string.Join(", ", Enumerable.Range(1, n).Select(i => $"[{nameof(HoldableTypeArgumentAttribute)}(unique: true)] T{i}"));
    var funcParams = string.Join(", ", Enumerable.Range(1, n).Select(i => $"Func<T{i}, R> f{i}"));
 
    sb.AppendLine($$"""

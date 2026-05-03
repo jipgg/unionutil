@@ -1,7 +1,7 @@
 #pragma warning disable CS0169,IDE0044
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-namespace UnionUtil;
+namespace UnionUtil.Internal;
 
 using static MethodImplOptions;
 

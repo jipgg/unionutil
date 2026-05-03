@@ -185,10 +185,11 @@ public sealed class UnionGenerator : IIncrementalGenerator {
    const string unscopedRef = $"{codeAnalysis}.UnscopedRef";
    const string interopServices = "global::System.Runtime.InteropServices";
    const string unionUtil = "global::UnionUtil";
-   const string throwHelpers = $"{unionUtil}.ThrowHelpers";
+   const string uuInternal = "global::UnionUtil.Internal";
+   const string throwHelpers = $"{uuInternal}.ThrowHelpers";
    const string throwInvalidOperation = $"{throwHelpers}.ThrowInvalidOperation";
    const string iSmallBUffer = $"{unionUtil}.ISmallBuffer";
-   const string boxHelpers = $"{unionUtil}.BoxHelpers";
+   const string boxHelpers = $"{uuInternal}.BoxHelpers";
    static string BoxHelpersWrite(string T, string v) => $"{boxHelpers}.Write<{T}>(ref {objectField}, {v})";
    static string BoxHelpersWrite(string T, string TSmallBuffer, string v) => $"{boxHelpers}.Write<{T}, {TSmallBuffer}>(ref {@unsafe}.AsRef(in {sboField}), ref {objectField}, {v})";
    static string BoxHelpersUpdate(string T, string v) => $"{boxHelpers}.Update<{T}>(ref {objectField}, {v})";
@@ -335,7 +336,7 @@ public sealed class UnionGenerator : IIncrementalGenerator {
          var size = args.SmallBufferOptimized.Size;
          TSbo = args.SmallBufferOptimized switch {
             { Tag: Sbo.Name, Name: var tn } => tn,
-            { Tag: Sbo.Size, Size: 7 or 15 or 23 } => $"{unionUtil}.SmallBuffer{size}",
+            { Tag: Sbo.Size, Size: 7 or 15 or 23 } => $"{uuInternal}.SmallBuffer{size}",
             _ => fallbackSboType,
          };
          writeField(TSbo, sboField, "default");

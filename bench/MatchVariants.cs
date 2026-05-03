@@ -1,5 +1,5 @@
 #pragma warning disable CS8618
-using static UnionUtil.ThrowHelpers;
+using static UnionUtil.Internal.ThrowHelpers;
 using UnionUtil.UnionTypeExtensions;
 using static DunetVariant<int, double, float, uint, nuint, System.Exception, System.Int128, bool>;
 
