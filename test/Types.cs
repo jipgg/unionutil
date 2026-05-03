@@ -1,21 +1,52 @@
-using System.Runtime.CompilerServices;
-using UnionUtil;
+using System.Numerics;
 namespace Test;
 
 using static MethodImplOptions;
-using static UnionImplOptions;
+using static UnionGeneratorOptions;
+
+public enum MutableTag { Int = 9, Double = 1, Vector3 = -3 }
+
+public struct ManagedValue { public string Text; }
+
+[GenerateUnion(BoxStructs | EnableUnionTypeInterface, FieldVisibility = Visibility.Internal)]
+[SmallBufferOptimized(23)]
+public partial struct ManagedStructUnion : IUnionTypeArguments<int, ManagedValue>;
+
+[Tagged<MutableTag>]
+[GenerateUnion(EnableNullable)]
+[UnionTypeArguments<int, double, Vector3>]
+partial struct MutableStruct;
+
+[GenerateUnion(EnableGenericHoldsTypeMethod | EnableUnionTypeInterface)]
+partial struct ClassUnion<T, U, V> where T : class where U : class where V : class;
+
+[GenerateUnion(BoxUnconstrainedGenerics | EnableUnionTypeInterface,
+      FieldVisibility = Visibility.Internal), SmallBufferOptimized]
+partial struct Union<T, U, V>;
+[GenerateUnion(BoxUnconstrainedGenerics | EnableUnionTypeInterface,
+      FieldVisibility = Visibility.Internal), SmallBufferOptimized]
+readonly partial struct ReadOnlyUnion<T, U, V>;
+
+[GenerateUnion]
+partial struct MutableStruct2<T> where T : struct;
+
+public enum Case { A, B, C, D, E, F, G }
+[Tagged<Case>("Case"), GenerateUnion(
+   FieldVisibility = Visibility.Internal
+)]
+public partial class BasicUnion<TA, TB, TC, TD, TE, TF, TG>;
 
 public enum Result { Ok, Err }
 
-[UnionImpl, CanHoldTypes<bool, Exception>, Tagged<Result>]
+[GenerateUnion, UnionTypeArguments<bool, Exception>, Tagged<Result>]
 partial struct ResultVoid;
 
-[Tagged<Result>, UnionImpl(FieldVisibility = Visibility.Internal)]
-public partial struct Result<T, E> : ICanHoldTypes<T, E> where E : Exception;
+[Tagged<Result>, GenerateUnion(FieldVisibility = Visibility.Internal)]
+public partial struct Result<T, E> : IUnionTypeArguments<T, E> where E : Exception;
 
-[UnionImpl(FieldVisibility = Visibility.Internal)]
+[GenerateUnion(FieldVisibility = Visibility.Internal)]
 [Tagged<Result>]
-public partial struct Result<T> : ICanHoldTypes<T, Exception> {
+public partial struct Result<T> : IUnionTypeArguments<T, Exception> {
    [MethodImpl(AggressiveInlining)]
    public static implicit operator Result<T, Exception>(Result<T> result) {
       return result._index is 1 ? result._1 : Unsafe.As<Exception>(result._box!);
@@ -26,17 +57,17 @@ public partial struct Result<T> : ICanHoldTypes<T, Exception> {
    }
 }
 
-[Tagged<Result>, UnionImpl(
-   BoxManagedStructs | BoxOpenGenerics | ImplementHoldsTypeMethod,
+[Tagged<Result>, GenerateUnion(
+   BoxStructs | BoxUnconstrainedGenerics | EnableGenericHoldsTypeMethod,
    FieldVisibility = Visibility.Internal
 )]
-public partial struct BoxedResult<T, E> : ICanHoldTypes<T, E> where E : Exception;
+public partial struct BoxedResult<T, E> : IUnionTypeArguments<T, E> where E : Exception;
 
-[Tagged<Result>, UnionImpl(
-      BoxManagedStructs | BoxOpenGenerics | ImplementHoldsTypeMethod,
+[Tagged<Result>, GenerateUnion(
+      BoxStructs | BoxUnconstrainedGenerics | EnableGenericHoldsTypeMethod,
       FieldVisibility = Visibility.Internal
 )]
-public partial struct BoxedResult<T> : ICanHoldTypes<T, Exception> {
+public partial struct BoxedResult<T> : IUnionTypeArguments<T, Exception> {
    [MethodImpl(AggressiveInlining)]
    public static implicit operator BoxedResult<T, Exception>(BoxedResult<T> result) {
       BoxedResult<T, Exception> r = default;
@@ -52,25 +83,26 @@ public partial struct BoxedResult<T> : ICanHoldTypes<T, Exception> {
       return r;
    }
 }
-[UnionImpl(
-   EnableNullable | BoxOpenGenerics | ImplementHoldsTypeMethod | ImplementUnionInterfaces,
+[GenerateUnion(
+   EnableNullable | BoxUnconstrainedGenerics | EnableGenericHoldsTypeMethod | EnableUnionTypeInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(23)]
 public partial struct Sbo23<T1, T2, T3>;
-[UnionImpl(
-   EnableNullable | BoxOpenGenerics | ImplementHoldsTypeMethod | ImplementUnionInterfaces,
+[GenerateUnion(
+   EnableNullable | BoxUnconstrainedGenerics | EnableGenericHoldsTypeMethod | EnableUnionTypeInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(55)]
 public partial struct Sbo55<T1, T2, T3>;
-[UnionImpl(
-   EnableNullable | BoxOpenGenerics | ImplementHoldsTypeMethod | ImplementUnionInterfaces,
+[GenerateUnion(
+   EnableNullable | BoxUnconstrainedGenerics | EnableGenericHoldsTypeMethod | EnableUnionTypeInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(15)]
-public partial struct Sbo15<T1, T2, T3> : ICanHoldTypes<T1, T2, T3>;
-[UnionImpl(EnableNullable | BoxOpenGenerics | ImplementHoldsTypeMethod | ImplementUnionInterfaces,
+public partial struct Sbo15<T1, T2, T3> : IUnionTypeArguments<T1, T2, T3>;
+[GenerateUnion(EnableNullable | BoxUnconstrainedGenerics | EnableGenericHoldsTypeMethod | EnableUnionTypeInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized<SBO7>]
 public partial struct Sbo7<T1, T2, T3>;
+
 [InlineArray(7)]
 public struct SBO7 : ISmallBuffer {
    byte _element0;
@@ -79,7 +111,7 @@ public struct SBO7 : ISmallBuffer {
       [MethodImpl(AggressiveInlining)]
       get => 7;
    }
-   [System.Diagnostics.CodeAnalysis.UnscopedRef]
+   [UnscopedRef]
    public ref byte Data {
       [MethodImpl(AggressiveInlining)]
       get => ref _element0;

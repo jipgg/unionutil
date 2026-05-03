@@ -1,36 +1,44 @@
 #!/bin/env dotnet
+#:project _shared.csproj
+#:property PublishAot=true
+// feels like this is the least complicated way to generate this specific static boilerplate
+// Dont really need to inspect the syntax tree for this so the internal generator project was a bit overkill imo.
 using System.Runtime.CompilerServices;
+using static UnionUtil.Internal.MetaConfiguration;
 using System.Text;
+using UnionUtil;
 
-const int N = 16;
-var outputDir = GetFilePath().ParentPath.ParentPath / "src/shared/generated";
+var outputDir = GetFilePath().ParentPath.ParentPath / "src/generated";
 Directory.CreateDirectory(outputDir);
+
 
 var sb = new StringBuilder(2048);
 sb.AppendLine("""
    #nullable enable
    using System;
    using System.Runtime.CompilerServices;
-   namespace UnionUtil;
+   using UnionUtil.Internal;
+   namespace UnionUtil {
    using static MethodImplOptions;
    """);
-for (int i = 1; i <= N; ++i) {
+for (int i = 1; i <= ArityCount; ++i) {
    var Ts = string.Join(", ", Enumerable.Range(1, i).Select(e => $"T{e}"));
    sb.AppendLine($$"""
-   public interface ICanHoldTypes<{{Ts}}>;
+   public interface I{{TypeMarkerName}}<{{Ts}}>;
    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
-   public sealed class CanHoldTypesAttribute<{{Ts}}> : Attribute;
-   public readonly struct FromIndex{{i}} {
-      public static readonly FromIndex{{i}} Value = default;
+   public sealed class {{TypeMarkerName}}Attribute<{{Ts}}> : Attribute;
+   public readonly struct {{FromIndexName}}{{i}} {
+      public static readonly {{FromIndexName}}{{i}} Value = default;
    }
    """);
 }
-sb.AppendLine("""
-   public static class SwitchExpressionCompatibilityExtensions {
-      extension<TUnion>(TUnion u) where TUnion : IUnionType {
+sb.AppendLine($$"""
+   namespace UnionTypeExtensions {
+   public static class UnionTypeSwitchExpressionExtensions {
+      extension<TUnion>(TUnion u) where TUnion : {{nameof(IUnionType)}} {
    """);
-for (var n = 1; n <= N; n++) {
-   var typeParams = string.Join(", ", Enumerable.Range(1, n).Select(i => $"[CanHold(unique: true)] T{i}"));
+for (var n = 1; n <= ArityCount; n++) {
+   var typeParams = string.Join(", ", Enumerable.Range(1, n).Select(i => $"[{nameof(HoldableTypeArgumentAttribute)}(unique: true)] T{i}"));
    var funcParams = string.Join(", ", Enumerable.Range(1, n).Select(i => $"Func<T{i}, R> f{i}"));
 
    sb.AppendLine($$"""
@@ -49,19 +57,18 @@ for (var n = 1; n <= N; n++) {
 sb.AppendLine("""
       }
    }
+   }// namespace UnionTypeExtensions
+   }// namespace UnionUtil
    """);
-File.WriteAllText(outputDir / "generated-boilerplate.g.cs", sb.ToString());
+await File.WriteAllTextAsync(outputDir / "Boilerplate.g.cs", sb.ToString());
 
 Console.WriteLine("Done.");
 
-static string GetFilePath([CallerFilePath] string filePath = default!) {
-   return filePath;
-}
+static string GetFilePath([CallerFilePath] string filePath = default!) => filePath;
 static class PathExtensions {
    extension(ReadOnlySpan<char> s) {
-      public static string operator /(ReadOnlySpan<char> basePath, ReadOnlySpan<char> path) {
-         return Path.Join(basePath, path);
-      }
+      public static string operator /(ReadOnlySpan<char> basePath, ReadOnlySpan<char> path) => Path.Join(basePath, path);
       public ReadOnlySpan<char> ParentPath => Path.GetDirectoryName(s);
    }
 }
+

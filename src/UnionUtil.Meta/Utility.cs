@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Diagnostics;
+using UnionUtil.Internal;
 namespace UnionUtil.Meta;
 
 readonly record struct ResolvedSource(string HintName, StringBuilder Source);
@@ -15,19 +16,18 @@ static class Helpers {
 
 }
 static class TypeSymbolExtensions {
-   const string CanHoldTypes = "CanHoldTypes";
    extension(ITypeSymbol symbol) {
       public (ImmutableArray<ITypeSymbol>, bool ok) ResolveUnionTypeArgs() {
          var attr = symbol.GetAttributes()
             .SingleOrDefault(static e => Helpers.IsUnionUtil(e.AttributeClass)
-                  && e.AttributeClass?.Name is $"{CanHoldTypes}Attribute");
+                  && e.AttributeClass?.Name is $"{MetaConfiguration.TypeMarkerName}Attribute");
          if (attr?.AttributeClass is INamedTypeSymbol a) {
             return (a.TypeArguments, true);
          }
          var inter = symbol.Interfaces
             .SingleOrDefault(static e => Helpers.IsUnionUtil(e)
                   && e.Arity is not 0
-                  && e.Name is $"I{CanHoldTypes}");
+                  && e.Name is $"I{MetaConfiguration.TypeMarkerName}");
          if (inter is not null) {
             return (inter.TypeArguments, true);
          }

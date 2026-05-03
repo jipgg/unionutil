@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFrameworks>net10.0;net9.0;net8.0;net7.0</TargetFrameworks>
     <LangVersion>14</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -10,13 +10,14 @@
 
      <IsPackable>true</IsPackable>
      <PackageId>UnionUtil</PackageId>
-     <Version>0.1.1</Version>
+     <Version>0.2.0</Version>
      <Authors>jipg</Authors>
      <PackageLicenseExpression>MIT</PackageLicenseExpression>
      <RepositoryUrl>https://github.com/jipgg/unionutil</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
      <Compile Include="../shared/**/*.cs" />
+     <Compile Include="../generated/**/*.cs" />
      <None Include="../../README.md" Pack="true" PackagePath="/" />
      <ProjectReference Include="..\UnionUtil.Meta\UnionUtil.Meta.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
      <Content Include="..\UnionUtil.Meta\bin\$(Configuration)\netstandard2.0\UnionUtil.Meta.dll" Pack="true" PackagePath="analyzers/dotnet/cs/" />

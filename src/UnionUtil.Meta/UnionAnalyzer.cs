@@ -2,6 +2,7 @@ using System.Collections.Specialized;
 using System.Runtime.CompilerServices;
 using System.Buffers;
 using SpanUtility;
+using UnionUtil.Internal;
 namespace UnionUtil.Meta;
 
 using static SyntaxKind;
@@ -20,17 +21,16 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
    }
    static readonly DiagnosticDescriptor MissingUnionImplMarker = new(
       "UU0001",
-      "missing UnionImpl marker",
-      $"'{{0}}' does nothing without marking with '{nameof(UnionImplAttribute)}'",
+      $"missing {nameof(GenerateUnionAttribute)} marker",
+      $"'{{0}}' does nothing without marking with '{nameof(GenerateUnionAttribute)}'",
       "Usage",
       DiagnosticSeverity.Warning,
       true
    );
-   const string CanHoldTypesName = "CanHoldTypes";
    static readonly DiagnosticDescriptor TypesCouldNotBeInferred = new(
       "UU0002",
       "types could not be inferred",
-      $"could not infer types, mark them with 'I{CanHoldTypesName}' or '{CanHoldTypesName}Attribute'",
+      $"could not infer types, mark them with 'I{MetaConfiguration.TypeMarkerName}' or '{MetaConfiguration.TypeMarkerName}Attribute'",
       "Usage",
       DiagnosticSeverity.Error,
       true
@@ -131,18 +131,18 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
          .Where(Helpers.IsUnionUtil)
          .ToArray();
       var interfaces = symbol.Interfaces.Where(Helpers.IsUnionUtil).ToArray();
-      SymbolData? unionImpl = null;
+      SymbolData? generateUnion = null;
       SymbolData? taggedSymbol = null;
       SymbolData? sboSymbol = null;
-      SymbolData? unionSymbol = null;
+      SymbolData? unionTypeArguments = null;
       var (typeArgs, typeArgsOk) = symbol.ResolveUnionTypeArgs();
       foreach (var e in attributes) {
          var loc = e.ApplicationSyntaxReference?
             .GetSyntax(ctx.CancellationToken)
             .GetLocation() ?? symbol.Locations.First();
          switch (e.AttributeClass!.Name) {
-            case nameof(UnionImplAttribute):
-               unionImpl = new(e.AttributeClass, loc);
+            case nameof(GenerateUnionAttribute):
+               generateUnion = new(e.AttributeClass, loc);
                break;
             case nameof(TaggedAttribute<>):
                taggedSymbol = new(e.AttributeClass, loc);
@@ -150,19 +150,19 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
             case nameof(SmallBufferOptimizedAttribute):
                sboSymbol = new(e.AttributeClass, loc);
                break;
-            case $"{CanHoldTypesName}Attribute":
-               unionSymbol = new(e.AttributeClass, loc);
+            case $"{MetaConfiguration.TypeMarkerName}Attribute":
+               unionTypeArguments = new(e.AttributeClass, loc);
                break;
          }
       }
-      if (unionImpl is SymbolData impl) goto unionimpl_not_null;
+      if (generateUnion is SymbolData impl) goto unionimpl_not_null;
       void diagnoseMissing(in SymbolData? s) {
          if (s is not SymbolData sd) return;
          ctx.ReportDiagnostic(Diagnostic.Create(MissingUnionImplMarker, sd.Loc, sd.Sym));
       }
       diagnoseMissing(taggedSymbol);
       diagnoseMissing(sboSymbol);
-      diagnoseMissing(unionSymbol);
+      diagnoseMissing(unionTypeArguments);
       return;
    unionimpl_not_null:
       if (!node.Modifiers.Any(SyntaxKind.PartialKeyword)) {
@@ -223,7 +223,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
          AttributeData? canHoldAttr = null;
          foreach (var attr in tp.GetAttributes()) {
             if (!Helpers.IsUnionUtil(attr)) continue;
-            if (attr.AttributeClass!.MetadataName is not nameof(CanHoldAttribute)) continue;
+            if (attr.AttributeClass!.MetadataName is not nameof(HoldableTypeArgumentAttribute)) continue;
             canHoldAttr = attr;
             break;
          }
@@ -321,7 +321,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
    static readonly DiagnosticDescriptor CanHoldNoUnionSource = new(
       "UU0006",
       "CanHold has no union source",
-      $"'{{0}}' is marked with {nameof(CanHoldAttribute)} but no unique {nameof(IUnionType)}-constrained type parameter exists",
+      $"'{{0}}' is marked with {nameof(HoldableTypeArgumentAttribute)} but no unique {nameof(IUnionType)}-constrained type parameter exists",
       "Usage",
       DiagnosticSeverity.Warning,
       true
@@ -363,7 +363,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       for (int i = 0; i < typeParams.Length; i++) {
          var tp = typeParams[i];
          var canHold = tp.GetAttributes()
-            .FirstOrDefault(a => Helpers.IsUnionUtil(a) && a.AttributeClass!.Name is nameof(CanHoldAttribute));
+            .FirstOrDefault(a => Helpers.IsUnionUtil(a) && a.AttributeClass!.Name is nameof(HoldableTypeArgumentAttribute));
 
          if (canHold is null) continue;
 
