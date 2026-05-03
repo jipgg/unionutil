@@ -59,7 +59,7 @@ sb.AppendLine("""
    }// namespace UnionTypeExtensions
    }// namespace UnionUtil
    """);
-await File.WriteAllTextAsync(outputDir / "GenericOverloads.g.cs", sb.ToString());
+await File.WriteAllTextAsync(outputDir / "Boilerplate.g.cs", sb.ToString());
 
 Console.WriteLine("Done.");
 

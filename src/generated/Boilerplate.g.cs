@@ -6,50 +6,50 @@ using static MethodImplOptions;
 public interface IUnionTypeArguments<T1>;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 public sealed class UnionTypeArgumentsAttribute<T1> : Attribute;
-public readonly struct FromIndex1 {
-   public static readonly FromIndex1 Value = default;
+public readonly struct FromTypeArgument1 {
+   public static readonly FromTypeArgument1 Value = default;
 }
 public interface IUnionTypeArguments<T1, T2>;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 public sealed class UnionTypeArgumentsAttribute<T1, T2> : Attribute;
-public readonly struct FromIndex2 {
-   public static readonly FromIndex2 Value = default;
+public readonly struct FromTypeArgument2 {
+   public static readonly FromTypeArgument2 Value = default;
 }
 public interface IUnionTypeArguments<T1, T2, T3>;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 public sealed class UnionTypeArgumentsAttribute<T1, T2, T3> : Attribute;
-public readonly struct FromIndex3 {
-   public static readonly FromIndex3 Value = default;
+public readonly struct FromTypeArgument3 {
+   public static readonly FromTypeArgument3 Value = default;
 }
 public interface IUnionTypeArguments<T1, T2, T3, T4>;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 public sealed class UnionTypeArgumentsAttribute<T1, T2, T3, T4> : Attribute;
-public readonly struct FromIndex4 {
-   public static readonly FromIndex4 Value = default;
+public readonly struct FromTypeArgument4 {
+   public static readonly FromTypeArgument4 Value = default;
 }
 public interface IUnionTypeArguments<T1, T2, T3, T4, T5>;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 public sealed class UnionTypeArgumentsAttribute<T1, T2, T3, T4, T5> : Attribute;
-public readonly struct FromIndex5 {
-   public static readonly FromIndex5 Value = default;
+public readonly struct FromTypeArgument5 {
+   public static readonly FromTypeArgument5 Value = default;
 }
 public interface IUnionTypeArguments<T1, T2, T3, T4, T5, T6>;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 public sealed class UnionTypeArgumentsAttribute<T1, T2, T3, T4, T5, T6> : Attribute;
-public readonly struct FromIndex6 {
-   public static readonly FromIndex6 Value = default;
+public readonly struct FromTypeArgument6 {
+   public static readonly FromTypeArgument6 Value = default;
 }
 public interface IUnionTypeArguments<T1, T2, T3, T4, T5, T6, T7>;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 public sealed class UnionTypeArgumentsAttribute<T1, T2, T3, T4, T5, T6, T7> : Attribute;
-public readonly struct FromIndex7 {
-   public static readonly FromIndex7 Value = default;
+public readonly struct FromTypeArgument7 {
+   public static readonly FromTypeArgument7 Value = default;
 }
 public interface IUnionTypeArguments<T1, T2, T3, T4, T5, T6, T7, T8>;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 public sealed class UnionTypeArgumentsAttribute<T1, T2, T3, T4, T5, T6, T7, T8> : Attribute;
-public readonly struct FromIndex8 {
-   public static readonly FromIndex8 Value = default;
+public readonly struct FromTypeArgument8 {
+   public static readonly FromTypeArgument8 Value = default;
 }
 namespace UnionTypeExtensions {
 public static class UnionTypeSwitchExpressionExtensions {

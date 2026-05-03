@@ -11,14 +11,14 @@ struct U256 {
    public U256(long v) => Unsafe.WriteUnaligned(ref _0, v);
 }
 
-[GenerateUnion(EnableFromIndexConstructors)]
+[GenerateUnion(EnableFromTypeArgumentConstructors)]
 public partial struct Union<T, U, V, W>;
-[GenerateUnion(BoxUnconstrainedGenerics | EnableFromIndexConstructors), SmallBufferOptimized(23)]
+[GenerateUnion(BoxUnconstrainedGenerics | EnableFromTypeArgumentConstructors), SmallBufferOptimized(23)]
 public partial struct BoxUnion23<T, U, V, W>;
 
-[GenerateUnion(BoxUnconstrainedGenerics | EnableFromIndexConstructors), SmallBufferOptimized(7)]
+[GenerateUnion(BoxUnconstrainedGenerics | EnableFromTypeArgumentConstructors), SmallBufferOptimized(7)]
 public partial struct BoxUnion7<T, U, V, W>;
-[GenerateUnion(BoxUnconstrainedGenerics | EnableFromIndexConstructors)]
+[GenerateUnion(BoxUnconstrainedGenerics | EnableFromTypeArgumentConstructors)]
 public partial struct BoxUnion0<T, U, V, W>;
 
 [MemoryDiagnoser, DisassemblyDiagnoser]

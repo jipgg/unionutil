@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using SpanUtility;
+using UnionUtil.Internal;
 namespace UnionUtil.Meta;
 
 using static UnionGeneratorOptions;
@@ -238,10 +239,10 @@ public sealed class UnionGenerator : IIncrementalGenerator {
                {{indexField}} = {{arg.TypeIndex}};
             }
          """);
-         if (!opts.Has(EnableFromIndexConstructors)) goto skip_implement_from_index_constructors;
+         if (!opts.Has(EnableFromTypeArgumentConstructors)) goto skip_implement_from_index_constructors;
          sb.AppendLine($$"""
             [{{aggressiveInlining}}]
-            public {{args.TypeName}}({{unionUtil}}.FromIndex{{arg.TypeIndex}} _, {{arg.TypeName}} v) {
+            public {{args.TypeName}}({{unionUtil}}.{{MetaConfiguration.FromIndexName}}{{arg.TypeIndex}} _, {{arg.TypeName}} v) {
                {{assign}};
                {{indexField}} = {{arg.TypeIndex}};
             }

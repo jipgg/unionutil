@@ -142,7 +142,7 @@ public enum UnionGeneratorOptions : uint {
    /// </summary>
    EnableUnionTypeInterface = 1 << 7,
 
-   EnableFromIndexConstructors = 1 << 8,
+   EnableFromTypeArgumentConstructors = 1 << 8,
 };
 public static class UnionGeneratorExtensions {
    extension(UnionGeneratorOptions opts) {
