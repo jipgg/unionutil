@@ -11,12 +11,13 @@ using UnionUtil;
 var outputDir = GetFilePath().ParentPath.ParentPath / "src/generated";
 Directory.CreateDirectory(outputDir);
 
+
 var sb = new StringBuilder(2048);
 sb.AppendLine("""
    #nullable enable
    using System;
    using System.Runtime.CompilerServices;
-   namespace UnionUtil;
+   namespace UnionUtil {
    using static MethodImplOptions;
    """);
 for (int i = 1; i <= ArityCount; ++i) {
@@ -31,11 +32,12 @@ for (int i = 1; i <= ArityCount; ++i) {
    """);
 }
 sb.AppendLine($$"""
-   public static class SwitchExpressionCompatibilityExtensions {
+   namespace UnionTypeExtensions {
+   public static class UnionTypeSwitchExpressionExtensions {
       extension<TUnion>(TUnion u) where TUnion : {{nameof(IUnionType)}} {
    """);
 for (var n = 1; n <= ArityCount; n++) {
-   var typeParams = string.Join(", ", Enumerable.Range(1, n).Select(i => $"[CanHold(unique: true)] T{i}"));
+   var typeParams = string.Join(", ", Enumerable.Range(1, n).Select(i => $"[{nameof(HoldableAttribute)}(unique: true)] T{i}"));
    var funcParams = string.Join(", ", Enumerable.Range(1, n).Select(i => $"Func<T{i}, R> f{i}"));
 
    sb.AppendLine($$"""
@@ -54,6 +56,8 @@ for (var n = 1; n <= ArityCount; n++) {
 sb.AppendLine("""
       }
    }
+   }// namespace UnionTypeExtensions
+   }// namespace UnionUtil
    """);
 await File.WriteAllTextAsync(outputDir / "GenericOverloads.g.cs", sb.ToString());
 

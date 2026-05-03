@@ -7,7 +7,7 @@ public class IncrementalBenchmark {
 
    [GlobalSetup]
    public void Setup() {
-      _compilation = CSharpCompilation.Create("Bench", Sources.SyntaxTrees); var driver = CSharpGeneratorDriver.Create(new UnionImplGenerator());
+      _compilation = CSharpCompilation.Create("Bench", Sources.SyntaxTrees); var driver = CSharpGeneratorDriver.Create(new UnionGenerator());
       _primed = (CSharpGeneratorDriver)driver.RunGenerators(_compilation);
    }
 

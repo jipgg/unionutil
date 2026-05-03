@@ -56,7 +56,7 @@ public class ModifyBoxed {
       }
    }
 }
-[UnionImpl(BoxOpenGenerics)]
+[GenerateUnion(BoxUnconstrainedGenerics)]
 partial struct Generated<T1, T2, T3>;
 public struct Baseline<T1, T2, T3> {
    object? _value;

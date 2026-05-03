@@ -1,6 +1,6 @@
-[UnionImpl(UnionImplOptions.ImplementUnionInterfaces, FieldVisibility = Visibility.Internal)]
+[GenerateUnion(UnionGeneratorOptions.EnableUnionTypeInterface, FieldVisibility = Visibility.Internal)]
 public partial struct BasicUnion<T, U, V, W>;
-[UnionImpl(UnionImplOptions.ImplementUnionInterfaces, FieldVisibility = Visibility.Internal)]
+[GenerateUnion(UnionGeneratorOptions.EnableUnionTypeInterface, FieldVisibility = Visibility.Internal)]
 public readonly partial struct ReadOnlyBasicUnion<T, U, V, W>;
 [MemoryDiagnoser, DisassemblyDiagnoser]
 [SimpleJob(RuntimeMoniker.Net10_0)]

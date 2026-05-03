@@ -1,8 +1,6 @@
 #pragma warning disable CS8618
-global using System.Collections.Immutable;
 global using UnionUtil.Meta;
 global using Microsoft.CodeAnalysis;
-global using Microsoft.CodeAnalysis.Diagnostics;
 global using Microsoft.CodeAnalysis.CSharp;
 
 [MemoryDiagnoser]
@@ -18,12 +16,12 @@ public class GeneratorBenchmark {
       ];
       _compilation = CSharpCompilation.Create("Bench", syntaxTrees);
 
-      _driver = (CSharpGeneratorDriver)CSharpGeneratorDriver.Create(new UnionImplGenerator());
+      _driver = CSharpGeneratorDriver.Create(new UnionGenerator());
    }
 
    [Benchmark]
    public GeneratorDriverRunResult Run() {
-      _driver.RunGeneratorsAndUpdateCompilation(_compilation, out _, out var diagnostics);
+      _driver.RunGeneratorsAndUpdateCompilation(_compilation, out _, out var _);
       return _driver.GetRunResult();
    }
 }

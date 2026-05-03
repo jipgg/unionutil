@@ -1,19 +1,20 @@
-﻿using UnionUtil;
-namespace Test.MustCompile;
-using static UnionImplOptions;
+﻿namespace Test.MustCompile;
+using static UnionGeneratorOptions;
 
-[UnionImpl(FieldVisibility = Visibility.Public)]
-sealed partial class SealedClass : ICanHold<int, float, object, List<object>>;
+[GenerateUnion(FieldVisibility = Visibility.Public)]
+sealed partial class SealedClass : IUnionTypeArguments<int, float, object, List<object>>;
 
 
-[UnionImpl(EnableReadOnly), CanHold<int, float>]
+#pragma warning disable
+[GenerateUnion(EnableReadOnly), UnionTypeArguments<int, float>]
 partial struct ReadonlyStruct;
+#pragma warning restore
 
-[UnionImpl(BoxOpenGenerics), SmallBufferOptimized]
-readonly partial struct ReadonlyStructSbo<T, U> : ICanHold<T, U>;
+[GenerateUnion(BoxUnconstrainedGenerics), SmallBufferOptimized]
+readonly partial struct ReadonlyStructSbo<T, U> : IUnionTypeArguments<T, U>;
 
-[UnionImpl(BoxOpenGenerics)]
-readonly partial struct ReadonlyStruct<T, U> : ICanHold<T, U>;
+[GenerateUnion(BoxUnconstrainedGenerics)]
+readonly partial struct ReadonlyStruct<T, U> : IUnionTypeArguments<T, U>;
 
-[UnionImpl]
-readonly partial struct ReadonlyStructSequential<T, U> : ICanHold<T, U>;
+[GenerateUnion]
+readonly partial struct ReadonlyStructSequential<T, U> : IUnionTypeArguments<T, U>;

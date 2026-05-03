@@ -44,29 +44,30 @@ or add it as a project refecence in your `.csproj`:
 Generating new unions:
 ```cs
 using UnionUtil;
-using static UnionUtil.UnionImplOptions;
+using static UnionUtil.UnionGeneratorOptions;
 // basic union with statically know type cases
-[UnionUImpl, CanHoldTypes<int, double, DateTime>]
+[GenerateUnion, UnionTypeArguments<int, double, DateTime>]
 partial struct MyUnion;
 // for trivial generic cases
-[UnionImpl(EnableReadOnly | EnableNullable)]
+[GenerateUnion(EnableReadOnly | EnableNullable)]
 sealed partial class MyOtherUnion<T, U, V, W>;
 // for non-trivial generic cases
-[UnionUImpl(ImplementUnionInterfaces | )] // will implement `IUnionType`
-readonly partial struct Union<T, U, V> : ICanHoldTypes<T, U, List<V>, double>;
+[GenerateUption(ImplementUnionInterfaces)] // will implement `IUnionType`
+readonly partial struct Union<T, U, V> : IUnionTypeArguments<T, U, List<V>, double>;
 // will box but store unmanaged values smaller than 15 bytes inside the inline buffer
-[UnionImpl(BoxOpenGenerics | WithExplicitConversionsToValue), SmallBufferOptimized(15)]
+[GenerateUnion(BoxOpenGenerics | WithExplicitConversionsToValue), SmallBufferOptimized(15)]
 partial struct MyGenericUnion<T, U, V, W, X, Y, Z>;
 // tagged union
 public enum Result { Ok, Err }
-[UnionImpl, Tagged<Result>]
-partial struct Result<T> : IUnion<T, Exception>;
+[GenerateUnion, Tagged<Result>]
+partial struct Result<T> : IUnionTypeArguments<T, Exception>;
 ```
 Using the unions:
 ```cs
 Union<int, bool, double> myUnion = 123;
 // This will be the main supported compatibility switch expression syntax
 // for projects targetting older .NET standards or language versions.
+// requires `using UnionUtil.UnionTypeExtensions`
 var asInt = myUnion.Switch( // does not care about generic type order
     (int i) => 1,
     (float f) => -1, // analyzer will emit warning that the union can never hold `float`
@@ -88,10 +89,10 @@ var str = result switch {
 static TNumber UseUnion<TUnion, [CanHold] TNumber>(in TUnion u, TNumber v)
     where TUnion: IUnionType where TNumber : INumber<TNumber>  {
 
-    if (!TUnion.CanHoldType<double>()) throw new(); // inspect whether a certain type can be held by the union
+    if (!TUnion.CanHold<double>()) throw new(); // inspect whether a certain type can be held by the union
     var sboSize = TUnion.SmallBufferSize; // inspect the sbo size
     var typeCount = TUnion.TypeCount; // inspect the count of types the union can hold
-    var holdsType = u.HoldsType<TNumber>(); // check if the union holds a specific type
+    var holdsType = u.Holds<TNumber>(); // check if the union holds a specific type
 
     if (u.TryGetValue(out TNumber n)) return n * v; // the main magic of IUnionType which implements a generic TryGetValue<T>(out T v)
     else throw new();

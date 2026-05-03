@@ -1,5 +1,6 @@
 #pragma warning disable CS8618
 using static UnionUtil.ThrowHelpers;
+using UnionUtil.UnionTypeExtensions;
 using static DunetVariant<int, double, float, uint, nuint, System.Exception, System.Int128, bool>;
 
 [Dunet.Union]
@@ -14,10 +15,10 @@ abstract partial record DunetVariant<T1, T2, T3, T4, T5, T6, T7, T8> {
    public partial record X8(T8 X);
 }
 
-[UnionImpl(ImplementUnionInterfaces | BoxOpenGenerics), SmallBufferOptimized]
+[GenerateUnion(EnableUnionTypeInterface | BoxUnconstrainedGenerics), SmallBufferOptimized]
 partial struct UnionUtilBoxVariant<T1, T2, T3, T4, T5, T6, T7, T8>;
 
-[UnionImpl(ImplementUnionInterfaces)]
+[GenerateUnion(EnableUnionTypeInterface)]
 readonly partial struct UnionUtilSequentialVariant<T1, T2, T3, T4, T5, T6, T7, T8>;
 
 

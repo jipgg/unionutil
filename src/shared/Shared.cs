@@ -35,8 +35,8 @@ public interface ISmallBuffer {
 }
 /// <summary>
 /// Enables small buffer optimization for a union using a custom buffer type.
-/// This optimization will only apply if <see cref="UnionImplOptions.BoxOpenGenerics"/>
-/// or <see cref="UnionImplOptions.BoxManagedStructs"/> is set.
+/// This optimization will only apply if <see cref="UnionGeneratorOptions.BoxUnconstrainedGenerics"/>
+/// or <see cref="UnionGeneratorOptions.BoxStructs"/> is set.
 /// </summary>
 /// <typeparam name="TSmallBuffer">
 /// The buffer type that provides inline storage. Must implement <see cref="ISmallBuffer"/>.
@@ -46,7 +46,7 @@ public sealed class SmallBufferOptimizedAttribute<TSmallBuffer>() : Attribute wh
 #endif
 
 [AttributeUsage(AttributeTargets.GenericParameter)]
-public sealed class CanHoldAttribute(string? typeParamNameOfUnion = null, bool unique = false) : Attribute;
+public sealed class HoldableAttribute(string? typeParamNameOfUnion = null, bool unique = false) : Attribute;
 
 /// <summary>
 /// Adds a strongly-typed tag field to the generated union and
@@ -71,7 +71,7 @@ public sealed class TaggedAttribute<Tag>(string propertyName = "Tag") : Attribut
 /// This attribute is the primary entry point for enabling source generation of union types.
 /// </remarks>
 [AttributeUsage(Targets)]
-public sealed class UnionImplAttribute(UnionImplOptions options = UnionImplOptions.Default) : Attribute {
+public sealed class GenerateUnionAttribute(UnionGeneratorOptions options = UnionGeneratorOptions.Default) : Attribute {
    /// <summary>
    /// Sets the visibility of the generated backing fields.
    /// </summary>
@@ -92,12 +92,12 @@ public sealed class SmallBufferOptimizedAttribute(uint size = 7) : Attribute;
 /// <summary>
 /// Options that control how a union is generated.
 /// </summary>
-public enum UnionImplOptions : uint {
+public enum UnionGeneratorOptions : uint {
    Default = 0,
    /// <summary>
    /// Adds a `HoldsType&lt;T&gt;()` method.
    /// </summary>
-   ImplementHoldsTypeMethod = 1 << 0,
+   EnableGenericHoldsMethod = 1 << 0,
    /// <summary>
    /// If enabled, open generics (without generic constraints) will be stored in a shared <see langword="object"/> field.
    /// Otherwise open generics will be stored sequentially.
@@ -106,7 +106,7 @@ public enum UnionImplOptions : uint {
    /// If <see cref="SmallBufferOptimizedAttribute"/> or <see cref="SmallBufferOptimizedAttribute{TSmallBuffer}"/> are specified,
    /// <see langword="unmanaged"/> values will not be boxed if they fit in the sbo buffer.
    /// </remarks>
-   BoxOpenGenerics = 1 << 1,
+   BoxUnconstrainedGenerics = 1 << 1,
    /// <summary>
    /// If enabled, managed structs (and `where T: struct`) will be stored in a shared <see langword="object"/> field.
    /// Otherwise managed structs will be stored sequentially.
@@ -115,7 +115,7 @@ public enum UnionImplOptions : uint {
    /// If <see cref="SmallBufferOptimizedAttribute"/> or <see cref="SmallBufferOptimizedAttribute{TSmallBuffer}"/> are specified,
    /// <see langword="unmanaged"/> values will not be boxed if they fit in the sbo buffer.
    /// </remarks>
-   BoxManagedStructs = 1 << 2,
+   BoxStructs = 1 << 2,
    /// <summary>
    /// Will generate a HasValue property, this is congruent with the proposed nullability for C#15 unions.
    /// </summary>
@@ -130,23 +130,23 @@ public enum UnionImplOptions : uint {
    /// <summary>
    /// Disables implicit conversion operators for union variants.
    /// </summary>
-   NoImplicitConversions = 1 << 5,
+   DisableImplicitConversions = 1 << 5,
    /// <summary>
    /// Adds explicit conversion operators for the values it can hold.
    /// </summary>
-   WithExplicitConversionsToValue = 1 << 6,
+   EnableExplicitConversionsToValue = 1 << 6,
 
    /// <summary>
    /// Implements <see cref="IUnionType"/> and tag interfaces like IHasTypeCountN, which provides a common generic interface
    /// in a type order agnostic manner. Mainly useful in generics <code>where TUnion : <see cref="IUnionType"/></code>.
    /// </summary>
-   ImplementUnionInterfaces = 1 << 7,
+   EnableUnionTypeInterface = 1 << 7,
 
-   ImplementFromIndexConstructors = 1 << 8,
+   EnableFromIndexConstructors = 1 << 8,
 };
-public static class UnionImplOptionsExtenions {
-   extension(UnionImplOptions opts) {
-      public bool Has(UnionImplOptions opt) {
+public static class UnionGeneratorExtensions {
+   extension(UnionGeneratorOptions opts) {
+      public bool Has(UnionGeneratorOptions opt) {
          return (opts & opt) != 0;
       }
    }
@@ -167,8 +167,8 @@ public static class VisibilityExtensions {
 /// </summary>
 public interface IUnionType {
 #if NET7_0_OR_GREATER
-   virtual static bool BoxesOpenGenerics { get; } = false;
-   virtual static bool BoxesManagedStructs { get; } = false;
+   virtual static bool BoxesUnconstrainedGenerics { get; } = false;
+   virtual static bool BoxesStructs { get; } = false;
    /// <summary>
    /// Gets the small buffer size. 0 if SBO is not enabled.
    /// </summary>
@@ -192,7 +192,7 @@ public interface IUnionType {
    /// <summary>
    /// Gets the number of distinct types the union can hold.
    /// </summary>
-   abstract static int TypeCount { get; }
+   abstract static int TypeArgumentCount { get; }
 #endif
 
    /// <summary>

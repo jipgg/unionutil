@@ -1,4 +1,4 @@
-[UnionImpl(ImplementUnionInterfaces | BoxOpenGenerics | BoxManagedStructs,
+[GenerateUnion(EnableUnionTypeInterface | BoxUnconstrainedGenerics | BoxStructs,
       FieldVisibility = Visibility.Internal)]
 [SmallBufferOptimized]
 partial struct BasicUnion<T1, T2, T3, T4, T5, T6, T7, T8>;
