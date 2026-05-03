@@ -435,10 +435,10 @@ public sealed class UnionGenerator : IIncrementalGenerator {
       if (isNullable) {
          sb.AppendLine($"  public{ro} bool HasValue => {indexField} != 0;");
       }
-      if (!opts.Has(EnableGenericHoldsMethod)) goto skip_include_holds_type_method;
+      if (!opts.Has(EnableGenericHoldsTypeMethod)) goto skip_include_holds_type_method;
       sb.AppendLine($$"""
          [{{aggressiveInlining}}]
-         public{{ro}} bool Holds<Type>() => {{indexField}} switch {
+         public{{ro}} bool HoldsType<Type>() => {{indexField}} switch {
       """);
       foreach (var e in entries) sb.AppendLine($"      {e.TypeIndex} => typeof(Type) == typeof({e.TypeName}),");
       sb.AppendLine($$"""
@@ -507,7 +507,7 @@ public sealed class UnionGenerator : IIncrementalGenerator {
       var canHoldTypeExpr = string.Join("||", entries.Select(static e => $"typeof(Tx) == typeof({e.TypeName})"));
       sb.AppendLine($$"""
          [{{aggressiveInlining}}]
-         bool {{@interface}}.Holds<Tx>() => {{indexField}} switch {
+         bool {{@interface}}.HoldsType<Tx>() => {{indexField}} switch {
       """);
       foreach (var e in entries) sb.AppendLine($"      {e.TypeIndex} => typeof(Tx) == typeof({e.TypeName}),");
       sb.AppendLine($$"""
@@ -534,7 +534,7 @@ public sealed class UnionGenerator : IIncrementalGenerator {
       """);
       sb.AppendLine($$"""
             [{{aggressiveInlining}}]
-            static bool {{@interface}}.CanHold<Tx>() => {{canHoldTypeExpr}};
+            static bool {{@interface}}.CanHoldType<Tx>() => {{canHoldTypeExpr}};
             static int {{@interface}}.TypeArgumentCount => {{entries.Length}};
             object? {{@interface}}.Value => Value;
             bool {{@interface}}.HasValue => {{(isNullable ? "HasValue" : "true")}};

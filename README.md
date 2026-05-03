@@ -3,7 +3,9 @@
 
 Source generator utilities trying to be congruent with the upcoming `union`s language feature in C#15.
 Strong focus on generating 'roughly' optimal union storage layouts within the bounds of what is allowed in the runtime.
-Project has been downgraded to .NET7 for compatibility.
+Targets net7.0 through net10.0.
+
+Starting from 0.2.x the public API is considered stable. Breaking changes will be listed in the release notes.
 
 ## Motivation
 This project initially started as an experiment playing around with the .NET11 union preview feature.
@@ -49,7 +51,7 @@ partial struct MyUnion;
 [GenerateUnion(EnableReadOnly | EnableNullable)]
 sealed partial class MyOtherUnion<T, U, V, W>;
 // for non-trivial generic cases
-[GenerateUption(EnableUnionTypeInterface)] // will implement `IUnionType`
+[GenerateUnion(EnableUnionTypeInterface)] // will implement `IUnionType`
 readonly partial struct Union<T, U, V> : IUnionTypeArguments<T, U, List<V>, double>;
 // will box but store unmanaged values smaller than 15 bytes inside the inline buffer
 [GenerateUnion(BoxUnconstrainedGenerics | EnableExplicitConversionsToValue), SmallBufferOptimized(15)]
@@ -64,7 +66,7 @@ Using the unions:
 Union<int, bool, double> myUnion = 123;
 // Extension method overloads simulating switch expression syntax
 // for projects targetting older .NET standards and/or language versions.
-using UnionUtil.UnionTypeExtensions
+using UnionUtil.UnionTypeExtensions;
 var asInt = myUnion.Switch( // does not care about generic type order
     (int i) => 1,
     (float f) => -1, // analyzer will emit warning that the union can never hold `float`
@@ -73,7 +75,7 @@ var asInt = myUnion.Switch( // does not care about generic type order
     (bool b) => 2,
     () => 4 // default case
 );
-Result<int[]> result = [1, 2, 3];
+Result<int[]> result = (int[])[1, 2, 3];
 // pattern match over tags
 var str = result switch {
     {Tag: Result.Ok, Ok: var ok} => $"[{string.Join(", ", ok.Select(e => e.ToString()))}]",
@@ -81,14 +83,14 @@ var str = result switch {
 };
 
 // working with unions generically
-// `[CanHold(nameof(TUnion))] T` marks a type parameter to be analyzed at the point invocation
+// `[HoldableTypeArgument] T` marks a type parameter to be analyzed at the point of invocation
 // and emit a warning if TUnion can not realistically ever hold T. 
-static TNumber UseUnion<TUnion, [CanHold] TNumber>(in TUnion u, TNumber v)
+static TNumber UseUnion<TUnion, [HoldableTypeArgument] TNumber>(in TUnion u, TNumber v)
     where TUnion: IUnionType where TNumber : INumber<TNumber>  {
 
     if (!TUnion.CanHold<double>()) throw new(); // inspect whether a certain type can be held by the union
     var sboSize = TUnion.SmallBufferSize; // inspect the sbo size
-    var typeCount = TUnion.TypeCount; // inspect the count of types the union can hold
+    var typeCount = TUnion.TypeArgumentCount; // inspect the count of types the union can hold
     var holdsType = u.Holds<TNumber>(); // check if the union holds a specific type
 
     if (u.TryGetValue(out TNumber n)) return n * v; // the main magic of IUnionType which implements a generic TryGetValue<T>(out T v)

@@ -17,7 +17,7 @@ public partial struct ManagedStructUnion : IUnionTypeArguments<int, ManagedValue
 [UnionTypeArguments<int, double, Vector3>]
 partial struct MutableStruct;
 
-[GenerateUnion(EnableGenericHoldsMethod | EnableUnionTypeInterface)]
+[GenerateUnion(EnableGenericHoldsTypeMethod | EnableUnionTypeInterface)]
 partial struct ClassUnion<T, U, V> where T : class where U : class where V : class;
 
 [GenerateUnion(BoxUnconstrainedGenerics | EnableUnionTypeInterface,
@@ -58,13 +58,13 @@ public partial struct Result<T> : IUnionTypeArguments<T, Exception> {
 }
 
 [Tagged<Result>, GenerateUnion(
-   BoxStructs | BoxUnconstrainedGenerics | EnableGenericHoldsMethod,
+   BoxStructs | BoxUnconstrainedGenerics | EnableGenericHoldsTypeMethod,
    FieldVisibility = Visibility.Internal
 )]
 public partial struct BoxedResult<T, E> : IUnionTypeArguments<T, E> where E : Exception;
 
 [Tagged<Result>, GenerateUnion(
-      BoxStructs | BoxUnconstrainedGenerics | EnableGenericHoldsMethod,
+      BoxStructs | BoxUnconstrainedGenerics | EnableGenericHoldsTypeMethod,
       FieldVisibility = Visibility.Internal
 )]
 public partial struct BoxedResult<T> : IUnionTypeArguments<T, Exception> {
@@ -84,21 +84,21 @@ public partial struct BoxedResult<T> : IUnionTypeArguments<T, Exception> {
    }
 }
 [GenerateUnion(
-   EnableNullable | BoxUnconstrainedGenerics | EnableGenericHoldsMethod | EnableUnionTypeInterface,
+   EnableNullable | BoxUnconstrainedGenerics | EnableGenericHoldsTypeMethod | EnableUnionTypeInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(23)]
 public partial struct Sbo23<T1, T2, T3>;
 [GenerateUnion(
-   EnableNullable | BoxUnconstrainedGenerics | EnableGenericHoldsMethod | EnableUnionTypeInterface,
+   EnableNullable | BoxUnconstrainedGenerics | EnableGenericHoldsTypeMethod | EnableUnionTypeInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(55)]
 public partial struct Sbo55<T1, T2, T3>;
 [GenerateUnion(
-   EnableNullable | BoxUnconstrainedGenerics | EnableGenericHoldsMethod | EnableUnionTypeInterface,
+   EnableNullable | BoxUnconstrainedGenerics | EnableGenericHoldsTypeMethod | EnableUnionTypeInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized(15)]
 public partial struct Sbo15<T1, T2, T3> : IUnionTypeArguments<T1, T2, T3>;
-[GenerateUnion(EnableNullable | BoxUnconstrainedGenerics | EnableGenericHoldsMethod | EnableUnionTypeInterface,
+[GenerateUnion(EnableNullable | BoxUnconstrainedGenerics | EnableGenericHoldsTypeMethod | EnableUnionTypeInterface,
    FieldVisibility = Visibility.Internal
 ), SmallBufferOptimized<SBO7>]
 public partial struct Sbo7<T1, T2, T3>;

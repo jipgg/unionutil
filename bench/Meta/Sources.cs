@@ -13,7 +13,7 @@ public static class Sources {
    using System.Collections.Generic;
    using static UnionUtil.{{nameof(UnionGeneratorOptions)}};
    enum NonTrivialTag {Tag1, Tag2, Tag3, Tag4}
-   [UnionImpl({{nameof(EnableUnionTypeInterface)}} | {{nameof(BoxUnconstrainedGenerics)}} | {{nameof(EnableGenericHoldsMethod)}})]
+   [UnionImpl({{nameof(EnableUnionTypeInterface)}} | {{nameof(BoxUnconstrainedGenerics)}} | {{nameof(EnableGenericHoldsTypeMethod)}})]
    [{{nameof(TaggedAttribute<>)}}<NonTrivialTag>, {{nameof(SmallBufferOptimizedAttribute)}}(123)]
    readonly partial struct NonTivial<T1, T2, T3> : I{{MetaConfiguration.TypeMarkerName}}<T1, T2, List<T3>, double>;
    """;

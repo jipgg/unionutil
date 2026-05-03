@@ -83,7 +83,7 @@ public sealed class UnionAnalyzer : DiagnosticAnalyzer {
       var sm = ctx.SemanticModel;
       var invocation = (InvocationExpressionSyntax)ctx.Node;
       if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess) return;
-      if (memberAccess.Name.Identifier.Text is not "Holds") return;
+      if (memberAccess.Name.Identifier.Text is not "HoldsType") return;
       if (sm.GetTypeInfo(memberAccess.Expression).Type is not INamedTypeSymbol symbol) return;
       var (typeArgs, _) = symbol.ResolveUnionTypeArgs();
       if (typeArgs.Length is 0) return;

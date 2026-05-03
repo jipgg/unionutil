@@ -41,8 +41,8 @@ public class BoxedResultTests {
    [Test]
    public async Task IntAssignment_HoldsInt_NotException() {
       BoxedResult<int, Exception> r = 1;
-      await Assert.That(r.Holds<int>()).IsTrue();
-      await Assert.That(r.Holds<Exception>()).IsFalse();
+      await Assert.That(r.HoldsType<int>()).IsTrue();
+      await Assert.That(r.HoldsType<Exception>()).IsFalse();
    }
    [Test]
    public async Task MutatingOk_ReflectsNewValue() {
@@ -66,8 +66,8 @@ public class BoxedResultTests {
    public async Task AfterErrAssignment_OkThrows_IntNotHeld() {
       BoxedResult<int, Exception> r = 1;
       r.Err = new("abc");
-      await Assert.That(r.Holds<Exception>()).IsTrue();
-      await Assert.That(r.Holds<int>()).IsFalse();
+      await Assert.That(r.HoldsType<Exception>()).IsTrue();
+      await Assert.That(r.HoldsType<int>()).IsFalse();
       await Assert.That(() => { _ = r.Ok; }).ThrowsException();
    }
    [Test]

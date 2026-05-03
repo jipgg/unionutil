@@ -97,7 +97,7 @@ public enum UnionGeneratorOptions : uint {
    /// <summary>
    /// Adds a `HoldsType&lt;T&gt;()` method.
    /// </summary>
-   EnableGenericHoldsMethod = 1 << 0,
+   EnableGenericHoldsTypeMethod = 1 << 0,
    /// <summary>
    /// If enabled, open generics (without generic constraints) will be stored in a shared <see langword="object"/> field.
    /// Otherwise open generics will be stored sequentially.
@@ -177,7 +177,7 @@ public interface IUnionType {
    /// Returns <see langword="true"/> if <typeparamref name="T"/> is among the types this union
    /// is declared to hold, regardless of its current state.
    /// </summary>
-   abstract static bool CanHold<T>();
+   abstract static bool CanHoldType<T>();
 
    /// <summary>
    /// Gets a value indicating whether the union is immutable after construction.
@@ -198,7 +198,7 @@ public interface IUnionType {
    /// <summary>
    /// Returns <see langword="true"/> if the currently stored value is of type <typeparamref name="T"/>.
    /// </summary>
-   bool Holds<T>();
+   bool HoldsType<T>();
 
    /// <summary>
    /// Gets the currently stored value boxed as <see cref="object"/>,

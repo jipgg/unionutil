@@ -6,12 +6,12 @@ public abstract class SboContractTests<TSbo> where TSbo : IUnionType {
    [Test]
    public async Task Holds_Double_AfterDoubleAssignment() {
       var sbo = WithDouble(0.5);
-      await Assert.That(sbo.Holds<double>()).IsTrue();
+      await Assert.That(sbo.HoldsType<double>()).IsTrue();
    }
    [Test]
    public async Task Holds_Int_ReturnsFalse_WhenDouble() {
       var sbo = WithDouble(0.5);
-      await Assert.That(sbo.Holds<int>()).IsFalse();
+      await Assert.That(sbo.HoldsType<int>()).IsFalse();
    }
    [Test]
    public async Task TryGetValue_ReturnsAssignedDouble() {
@@ -29,9 +29,9 @@ public abstract class SboContractTests<TSbo> where TSbo : IUnionType {
       await Assert.That(i).IsEqualTo(42);
    }
    [Test]
-   public async Task CanHold_Double_IsTrue() => await Assert.That(TSbo.CanHold<double>()).IsTrue();
+   public async Task CanHold_Double_IsTrue() => await Assert.That(TSbo.CanHoldType<double>()).IsTrue();
    [Test]
-   public async Task CanHold_Int_IsTrue() => await Assert.That(TSbo.CanHold<int>()).IsTrue();
+   public async Task CanHold_Int_IsTrue() => await Assert.That(TSbo.CanHoldType<int>()).IsTrue();
    [Test]
    public async Task IUnionType_Value_ReturnsCurrentValue() {
       var sbo = WithDouble(0.5);
@@ -120,7 +120,7 @@ public class Sbo7Tests : SboContractTests<Sbo7<int, double, Exception>> {
    public async Task IUnionType_Holds_Double() {
       Sbo7<int, double, Exception> sbo = 0.5;
       IUnionType sv = sbo;
-      await Assert.That(sv.Holds<double>()).IsTrue();
-      await Assert.That(sv.Holds<object>()).IsFalse();
+      await Assert.That(sv.HoldsType<double>()).IsTrue();
+      await Assert.That(sv.HoldsType<object>()).IsFalse();
    }
 }
