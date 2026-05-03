@@ -1,4 +1,6 @@
 # UnionUtil
+[![NuGet Version](https://img.shields.io/nuget/v/UnionUtil?label=NuGet&logo=nuget)](https://www.nuget.org/packages/UnionUtil)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/UnionUtil?label=Downloads&logo=nuget)](https://www.nuget.org/packages/UnionUtil)
 Source generator utilities trying to be congruent with the upcoming `union`s language feature in C#15.
 Strong focus on generating 'roughly' optimal union storage layouts within the bounds of what is allowed in the runtime.
 Project has been downgraded to .NET7 for compatibility.
